@@ -1,0 +1,23 @@
+{
+  "name": "ai-interview-agent",
+  "version": "2.0.0",
+  "private": true,
+  "description": "AI Interview Agent for AI Cohort Hackathon",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "start:frontend": "npm --prefix frontend start",
+    "dev:backend": "cd backend && uvicorn main:app --reload --port 8000",
+    "install:all": "npm --prefix frontend install"
+  },
+  "keywords": [
+    "ai",
+    "interview",
+    "agent",
+    "fastapi",
+    "nextjs",
+    "gemini"
+  ],
+  "author": "",
+  "license": "ISC"
+}
