@@ -5,7 +5,7 @@ import { SAMPLE_CANDIDATES } from '../utils/candidates';
 import { CandidateProfile, ChatMessage, Feedback, InterviewResponse } from '../types/interview';
 import { postInterview } from '../services/api';
 import { speakText, stopSpeech } from '../utils/voice';
-import RealHumanAvatar from '../components/RealHumanAvatar';
+import PhotorealisticPresenter from '../components/PhotorealisticPresenter';
 import {
   User,
   Bot,
@@ -210,7 +210,7 @@ export default function Home() {
               <h1 className="font-bold tracking-tight text-lg text-slate-900">
                 Enterprise AI Technical Interviewer
               </h1>
-              <p className="text-xs text-slate-500 font-medium">3D Real Human Presenter Persona</p>
+              <p className="text-xs text-slate-500 font-medium">Photorealistic Interviewer Persona</p>
             </div>
           </div>
 
@@ -273,7 +273,7 @@ export default function Home() {
               Select Technical Candidate
             </h2>
             <p className="text-slate-600 max-w-xl mx-auto text-sm sm:text-base">
-              The 3D Human Presenter evaluates candidates against the 31-day AI Cohort curriculum with real-time lip-sync voice questions and technical evaluation.
+              The photorealistic AI Technical Interviewer evaluates candidates against the 31-day AI Cohort curriculum with real-time voice synthesis and technical evaluation.
             </p>
           </div>
 
@@ -351,11 +351,11 @@ export default function Home() {
               {isSubmitting ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin" />
-                  Initializing 3D Human Avatar...
+                  Initializing Technical Persona...
                 </>
               ) : (
                 <>
-                  Start 3D Human Technical Interview ({selectedCandidate.member.name})
+                  Start Technical Interview ({selectedCandidate.member.name})
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -364,25 +364,25 @@ export default function Home() {
         </section>
       )}
 
-      {/* VIEW 2: 3D Human Presenter Studio */}
+      {/* VIEW 2: Photorealistic Presenter Studio */}
       {step === 'interview' && (
         <section className="max-w-7xl mx-auto px-4 py-4 flex-1 flex flex-col md:flex-row gap-6 w-full h-[calc(100vh-75px)]">
-          {/* Left Column: 3D Real Human Presenter Persona Card */}
+          {/* Left Column: Photorealistic Technical Interviewer Card */}
           <div className="w-full md:w-80 lg:w-96 flex flex-col gap-4">
             <div className="p-5 rounded-2xl bg-white border border-slate-200 flex flex-col items-center justify-between flex-1 shadow-md relative overflow-hidden">
               <div className="w-full flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Radio className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
-                  3D Human Interviewer
+                  AI Technical Interviewer
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10px] text-slate-700 font-mono">
-                  Live Lip-Sync
+                  Voice Synthesis
                 </span>
               </div>
 
-              {/* Real Human 3D Avatar */}
+              {/* Photorealistic Presenter Component */}
               <div className="w-full h-64 my-auto">
-                <RealHumanAvatar
+                <PhotorealisticPresenter
                   isSpeaking={isSpeaking}
                   isThinking={isSubmitting}
                   candidateName={selectedCandidate.member.name}
@@ -442,7 +442,7 @@ export default function Home() {
                       }`}
                     >
                       <div className="flex items-center justify-between text-[11px] mb-1.5 opacity-70">
-                        <span className="font-bold">{isAI ? '3D Human Presenter' : selectedCandidate.member.name}</span>
+                        <span className="font-bold">{isAI ? 'AI Technical Interviewer' : selectedCandidate.member.name}</span>
                         <span>{msg.timestamp}</span>
                       </div>
                       <p className="whitespace-pre-wrap">{msg.text}</p>
