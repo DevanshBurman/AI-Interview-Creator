@@ -5,7 +5,7 @@ import { SAMPLE_CANDIDATES } from '../utils/candidates';
 import { CandidateProfile, ChatMessage, Feedback, InterviewResponse } from '../types/interview';
 import { postInterview } from '../services/api';
 import { speakText, stopSpeech } from '../utils/voice';
-import PhotorealisticPresenter from '../components/PhotorealisticPresenter';
+import ThreeJSAvatar from '../components/ThreeJSAvatar';
 import {
   User,
   Bot,
@@ -210,7 +210,7 @@ export default function Home() {
               <h1 className="font-bold tracking-tight text-lg text-slate-900">
                 Enterprise AI Technical Interviewer
               </h1>
-              <p className="text-xs text-slate-500 font-medium">Photorealistic Interviewer Persona</p>
+              <p className="text-xs text-slate-500 font-medium">Three.js 3D Presenter Persona</p>
             </div>
           </div>
 
@@ -273,7 +273,7 @@ export default function Home() {
               Select Technical Candidate
             </h2>
             <p className="text-slate-600 max-w-xl mx-auto text-sm sm:text-base">
-              The photorealistic AI Technical Interviewer evaluates candidates against the 31-day AI Cohort curriculum with real-time voice synthesis and technical evaluation.
+              The Three.js 3D Presenter evaluates candidates against the 31-day AI Cohort curriculum with real-time lip-sync voice questions and technical evaluation.
             </p>
           </div>
 
@@ -351,11 +351,11 @@ export default function Home() {
               {isSubmitting ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin" />
-                  Initializing Technical Persona...
+                  Initializing 3D Presenter...
                 </>
               ) : (
                 <>
-                  Start Technical Interview ({selectedCandidate.member.name})
+                  Start 3D Technical Interview ({selectedCandidate.member.name})
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -364,25 +364,25 @@ export default function Home() {
         </section>
       )}
 
-      {/* VIEW 2: Photorealistic Presenter Studio */}
+      {/* VIEW 2: Three.js 3D Presenter Studio */}
       {step === 'interview' && (
         <section className="max-w-7xl mx-auto px-4 py-4 flex-1 flex flex-col md:flex-row gap-6 w-full h-[calc(100vh-75px)]">
-          {/* Left Column: Photorealistic Technical Interviewer Card */}
+          {/* Left Column: Three.js 3D Technical Interviewer Card */}
           <div className="w-full md:w-80 lg:w-96 flex flex-col gap-4">
             <div className="p-5 rounded-2xl bg-white border border-slate-200 flex flex-col items-center justify-between flex-1 shadow-md relative overflow-hidden">
               <div className="w-full flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Radio className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
-                  AI Technical Interviewer
+                  Three.js 3D Presenter
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10px] text-slate-700 font-mono">
-                  Voice Synthesis
+                  WebGL 3D
                 </span>
               </div>
 
-              {/* Photorealistic Presenter Component */}
+              {/* Three.js 3D Avatar Component */}
               <div className="w-full h-64 my-auto">
-                <PhotorealisticPresenter
+                <ThreeJSAvatar
                   isSpeaking={isSpeaking}
                   isThinking={isSubmitting}
                   candidateName={selectedCandidate.member.name}
@@ -442,7 +442,7 @@ export default function Home() {
                       }`}
                     >
                       <div className="flex items-center justify-between text-[11px] mb-1.5 opacity-70">
-                        <span className="font-bold">{isAI ? 'AI Technical Interviewer' : selectedCandidate.member.name}</span>
+                        <span className="font-bold">{isAI ? '3D Presenter' : selectedCandidate.member.name}</span>
                         <span>{msg.timestamp}</span>
                       </div>
                       <p className="whitespace-pre-wrap">{msg.text}</p>
