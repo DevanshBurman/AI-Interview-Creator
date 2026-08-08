@@ -22,15 +22,14 @@ export default function ThreeJSAvatar({
     const container = containerRef.current;
     if (!container) return;
 
-    // 1. Viewport & Camera Setup (Framed to show entire head, face & shoulders above status bar)
+    // 1. Viewport & Camera Setup
     const width = container.clientWidth || 300;
     const height = container.clientHeight || 300;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf8fafc); // Clean executive studio background
+    scene.background = new THREE.Color(0xf8fafc);
 
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 1.25, 1.45); // Camera pulled back slightly to show entire face & suit
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -38,14 +37,13 @@ export default function ThreeJSAvatar({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // Tone mapping for realistic rendering
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     container.appendChild(renderer.domElement);
 
-    // 2. High-Quality 3-Point Studio Lighting
+    // 2. High-Quality Studio Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
     scene.add(ambientLight);
 
@@ -72,17 +70,15 @@ export default function ThreeJSAvatar({
       (gltf) => {
         avatarModel = gltf.scene;
 
-        // Auto-center and position model so face is perfectly centered in upper 75% of frame
+        // Auto-center model exactly at origin (0, 0, 0)
         const box = new THREE.Box3().setFromObject(avatarModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
-        avatarModel.position.x = -center.x;
-        avatarModel.position.y = -center.y + 0.95; // Shifted UP so mouth & chin are fully visible
-        avatarModel.position.z = -center.z;
+        avatarModel.position.set(-center.x, -center.y, -center.z);
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 1.45 / (maxDim || 1); // Perfect portrait framing scale
+        const scale = 1.6 / (maxDim || 1);
         avatarModel.scale.set(scale, scale, scale);
 
         avatarModel.traverse((child) => {
@@ -97,7 +93,11 @@ export default function ThreeJSAvatar({
           }
         });
 
-        camera.lookAt(0, 1.05, 0); // Focus directly on model face
+        // Frame camera directly on the model's head & face (upper 60% of bounding height)
+        const headTargetY = size.y * 0.28;
+        camera.position.set(0, headTargetY, 1.35);
+        camera.lookAt(0, headTargetY - 0.05, 0);
+
         scene.add(avatarModel);
         setModelLoaded(true);
       },
@@ -115,11 +115,8 @@ export default function ThreeJSAvatar({
       const elapsedTime = clock.getElapsedTime();
 
       if (avatarModel) {
-        // Natural Breathing & Subtle Head Sway
-        avatarModel.position.y = 0.95 + Math.sin(elapsedTime * 1.5) * 0.008;
         avatarModel.rotation.y = Math.sin(elapsedTime * 0.8) * 0.04;
 
-        // Lip-Sync Jaw Movement when speaking
         if (isSpeaking) {
           if (jawBone) {
             jawBone.rotation.x = Math.abs(Math.sin(elapsedTime * 16)) * 0.18;
@@ -132,7 +129,6 @@ export default function ThreeJSAvatar({
           }
         }
 
-        // Thinking Expression
         if (isThinking) {
           avatarModel.rotation.z = Math.sin(elapsedTime * 2) * 0.02;
         } else {
