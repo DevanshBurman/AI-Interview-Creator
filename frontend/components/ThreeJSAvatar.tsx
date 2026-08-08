@@ -16,14 +16,14 @@ export default function ThreeJSAvatar({
   isThinking,
   candidateName,
 }: ThreeJSAvatarProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const canvasMountRef = useRef<HTMLDivElement | null>(null);
   const [modelLoaded, setModelLoaded] = useState<boolean>(false);
 
   // Mutable refs to prevent React re-mounting / WebGL context destruction
   const isSpeakingRef = useRef<boolean>(isSpeaking);
   const isThinkingRef = useRef<boolean>(isThinking);
 
-  // Sync props to refs without re-running useEffect
+  // Sync props to refs without re-running mount effect
   useEffect(() => {
     isSpeakingRef.current = isSpeaking;
   }, [isSpeaking]);
@@ -32,20 +32,13 @@ export default function ThreeJSAvatar({
     isThinkingRef.current = isThinking;
   }, [isThinking]);
 
-  // Three.js Mount Once Effect with Safe DOM Lifecycle
+  // Mount Three.js Canvas ONCE in isolated containerRef
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const mountNode = canvasMountRef.current;
+    if (!mountNode) return;
 
-    // Safely clear inner HTML without causing React Virtual DOM removeChild collisions
-    try {
-      container.innerHTML = '';
-    } catch (e) {
-      // Ignore initial DOM clearing error
-    }
-
-    const width = container.clientWidth || 300;
-    const height = container.clientHeight || 300;
+    const width = mountNode.clientWidth || 300;
+    const height = mountNode.clientHeight || 300;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf8fafc);
@@ -62,7 +55,7 @@ export default function ThreeJSAvatar({
     renderer.toneMappingExposure = 1.25;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    container.appendChild(renderer.domElement);
+    mountNode.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -71,7 +64,7 @@ export default function ThreeJSAvatar({
     controls.minDistance = 0.5;
     controls.maxDistance = 4;
 
-    // Lighting
+    // Studio Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     scene.add(ambientLight);
 
@@ -140,7 +133,7 @@ export default function ThreeJSAvatar({
       }
     );
 
-    // Continuous Render Loop
+    // Continuous Animation Loop
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
@@ -172,9 +165,9 @@ export default function ThreeJSAvatar({
     animate();
 
     const handleResize = () => {
-      if (!container) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
+      if (!mountNode) return;
+      const w = mountNode.clientWidth;
+      const h = mountNode.clientHeight;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
@@ -182,33 +175,25 @@ export default function ThreeJSAvatar({
 
     window.addEventListener('resize', handleResize);
 
-    // Fail-safe cleanup block using try-catch to prevent React removeChild crash
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
-      try {
-        if (renderer.domElement && renderer.domElement.parentNode === container) {
-          container.removeChild(renderer.domElement);
-        }
-      } catch (e) {
-        // Suppress DOM removal race condition safely
+      if (mountNode && renderer.domElement && mountNode.contains(renderer.domElement)) {
+        mountNode.removeChild(renderer.domElement);
       }
-      try {
-        renderer.dispose();
-      } catch (e) {
-        // Ignore WebGL disposal error
-      }
+      renderer.dispose();
     };
-  }, []); // Mount ONCE
+  }, []);
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-2">
-      <div
-        ref={containerRef}
-        className="relative w-full aspect-square max-w-[300px] rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-slate-50 flex items-center justify-center cursor-grab active:cursor-grabbing"
-      >
+      <div className="relative w-full aspect-square max-w-[300px] rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-slate-50 flex items-center justify-center cursor-grab active:cursor-grabbing">
+        {/* ISOLATED CANVAS MOUNT NODE: Contains ZERO React JSX children to guarantee ZERO DOM reconciliation collisions */}
+        <div ref={canvasMountRef} className="absolute inset-0 w-full h-full" />
+
+        {/* REACT JSX OVERLAYS (Sits outside canvasMountRef as siblings) */}
         {!modelLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-100 text-xs text-slate-500 font-medium">
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-100 text-xs text-slate-500 font-medium z-10">
             Loading 3D Presenter...
           </div>
         )}
