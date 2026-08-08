@@ -29,7 +29,8 @@ export default function ThreeJSAvatar({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf8fafc);
 
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    camera.position.set(0, 0, 1.4); // Focused directly on origin (0,0,0)
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -38,12 +39,12 @@ export default function ThreeJSAvatar({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.25;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     container.appendChild(renderer.domElement);
 
-    // 2. High-Quality Studio Lighting
+    // 2. Studio Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
     scene.add(ambientLight);
 
@@ -64,21 +65,27 @@ export default function ThreeJSAvatar({
     const loader = new GLTFLoader();
     let avatarModel: THREE.Group | null = null;
     let jawBone: THREE.Object3D | null = null;
+    let initialY = 0;
 
     loader.load(
       '/models/interviewer.glb',
       (gltf) => {
         avatarModel = gltf.scene;
 
-        // Auto-center model exactly at origin (0, 0, 0)
+        // Calculate model bounding box
         const box = new THREE.Box3().setFromObject(avatarModel);
-        const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
 
-        avatarModel.position.set(-center.x, -center.y, -center.z);
+        // Target face/head level (around top 20% of bounding box height)
+        const faceLevelY = box.max.y - size.y * 0.22;
+        initialY = -faceLevelY;
+
+        // Position face level directly at origin (0, 0, 0)
+        avatarModel.position.set(-center.x, initialY, -center.z);
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 1.6 / (maxDim || 1);
+        const scale = 1.55 / (maxDim || 1);
         avatarModel.scale.set(scale, scale, scale);
 
         avatarModel.traverse((child) => {
@@ -93,11 +100,7 @@ export default function ThreeJSAvatar({
           }
         });
 
-        // Frame camera directly on the model's head & face (upper 60% of bounding height)
-        const headTargetY = size.y * 0.28;
-        camera.position.set(0, headTargetY, 1.35);
-        camera.lookAt(0, headTargetY - 0.05, 0);
-
+        camera.lookAt(0, -0.05, 0); // Focus directly on centered face
         scene.add(avatarModel);
         setModelLoaded(true);
       },
@@ -115,6 +118,7 @@ export default function ThreeJSAvatar({
       const elapsedTime = clock.getElapsedTime();
 
       if (avatarModel) {
+        avatarModel.position.y = initialY + Math.sin(elapsedTime * 1.5) * 0.006;
         avatarModel.rotation.y = Math.sin(elapsedTime * 0.8) * 0.04;
 
         if (isSpeaking) {
