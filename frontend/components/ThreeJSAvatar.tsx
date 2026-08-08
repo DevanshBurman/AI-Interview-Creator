@@ -17,21 +17,20 @@ export default function ThreeJSAvatar({
 }: ThreeJSAvatarProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [modelLoaded, setModelLoaded] = useState<boolean>(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // 1. Scene, Camera, Renderer Setup
+    // 1. Viewport & Camera Setup (Framed for Head & Chest Centering)
     const width = container.clientWidth || 300;
     const height = container.clientHeight || 300;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf8fafc); // Clean executive studio background
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 1.45, 1.8);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(0, 1.15, 1.1); // Focused camera on head & suit jacket
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -39,26 +38,31 @@ export default function ThreeJSAvatar({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
+    // High-definition tone mapping & color space for photorealistic textures
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
     container.appendChild(renderer.domElement);
 
-    // 2. Studio Lighting Setup
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    // 2. High-Quality 3-Point Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff5ea, 1.6);
-    keyLight.position.set(2, 4, 3);
+    const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.8);
+    keyLight.position.set(2, 3.5, 3);
     keyLight.castShadow = true;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xe0e7ff, 0.8);
+    const fillLight = new THREE.DirectionalLight(0xe0e7ff, 0.9);
     fillLight.position.set(-2, 2, 2);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xc7d2fe, 1.0);
+    const rimLight = new THREE.DirectionalLight(0xc7d2fe, 1.2);
     rimLight.position.set(0, 3, -2);
     scene.add(rimLight);
 
-    // 3. Load User 3D GLB Model
+    // 3. Load 3D GLB Model
     const loader = new GLTFLoader();
     let avatarModel: THREE.Group | null = null;
     let jawBone: THREE.Object3D | null = null;
@@ -68,38 +72,46 @@ export default function ThreeJSAvatar({
       (gltf) => {
         avatarModel = gltf.scene;
 
-        // Auto-center and fit model in camera viewport
+        // Auto-center and shift model upwards so head & chest are perfectly centered
         const box = new THREE.Box3().setFromObject(avatarModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
-        avatarModel.position.x += avatarModel.position.x - center.x;
-        avatarModel.position.y += avatarModel.position.y - center.y + 0.35;
-        avatarModel.position.z += avatarModel.position.z - center.z;
+        // Center on X and Z, adjust Y position to raise head into upper-middle frame
+        avatarModel.position.x = -center.x;
+        avatarModel.position.y = -center.y + 0.62; // Raised to center head & suit
+        avatarModel.position.z = -center.z;
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 1.6 / (maxDim || 1);
+        const scale = 1.8 / (maxDim || 1);
         avatarModel.scale.set(scale, scale, scale);
 
         avatarModel.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             child.castShadow = true;
             child.receiveShadow = true;
+            const mesh = child as THREE.Mesh;
+            if (mesh.material) {
+              const mat = mesh.material as THREE.MeshStandardMaterial;
+              mat.envMapIntensity = 1.0;
+              mat.needsUpdate = true;
+            }
           }
-          // Search for jaw/head bones for lip-sync animation
+
+          // Identify jaw or head bone for lip-sync animation
           const nameLower = child.name.toLowerCase();
           if (nameLower.includes('jaw') || nameLower.includes('mouth') || nameLower.includes('head')) {
             jawBone = child;
           }
         });
 
+        camera.lookAt(0, 0.98, 0); // Focus camera directly on interviewer face
         scene.add(avatarModel);
         setModelLoaded(true);
       },
       undefined,
       (err) => {
         console.error('Error loading GLB model:', err);
-        setLoadError('Loading 3D model...');
       }
     );
 
@@ -111,15 +123,14 @@ export default function ThreeJSAvatar({
       const elapsedTime = clock.getElapsedTime();
 
       if (avatarModel) {
-        // Natural Breathing & Sway
-        avatarModel.position.y = Math.sin(elapsedTime * 1.5) * 0.015;
-        avatarModel.rotation.y = Math.sin(elapsedTime * 0.8) * 0.06;
+        // Natural Breathing & Subtle Head Sway
+        avatarModel.position.y = (-0.62) + Math.sin(elapsedTime * 1.5) * 0.01;
+        avatarModel.rotation.y = Math.sin(elapsedTime * 0.8) * 0.05;
 
-        // Speaking Lip-Sync / Jaw Motion
+        // Lip-Sync Jaw Movement when speaking
         if (isSpeaking) {
-          const mouthScale = 1 + Math.abs(Math.sin(elapsedTime * 16)) * 0.25;
           if (jawBone) {
-            jawBone.rotation.x = Math.abs(Math.sin(elapsedTime * 16)) * 0.15;
+            jawBone.rotation.x = Math.abs(Math.sin(elapsedTime * 16)) * 0.18;
           } else {
             avatarModel.scale.set(
               avatarModel.scale.x,
@@ -129,9 +140,9 @@ export default function ThreeJSAvatar({
           }
         }
 
-        // Thinking Tilt
+        // Thinking Expression
         if (isThinking) {
-          avatarModel.rotation.z = Math.sin(elapsedTime * 2) * 0.03;
+          avatarModel.rotation.z = Math.sin(elapsedTime * 2) * 0.025;
         } else {
           avatarModel.rotation.z = 0;
         }
@@ -168,7 +179,7 @@ export default function ThreeJSAvatar({
     <div className="relative w-full h-full flex flex-col items-center justify-center p-2">
       <div
         ref={containerRef}
-        className="relative w-full aspect-square max-w-[300px] rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-50"
+        className="relative w-full aspect-square max-w-[300px] rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-slate-50"
       >
         {/* Live Status Pill Overlay */}
         <div className="absolute bottom-2 left-2 right-2 px-3 py-1.5 rounded-xl bg-slate-900/90 backdrop-blur-md text-[11px] font-semibold flex items-center justify-between text-white shadow-md z-10">
@@ -176,7 +187,7 @@ export default function ThreeJSAvatar({
             {isSpeaking ? (
               <>
                 <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping flex-shrink-0" />
-                <span className="text-indigo-300 font-bold truncate">3D Model Asking Question...</span>
+                <span className="text-indigo-300 font-bold truncate">3D Presenter Speaking...</span>
               </>
             ) : isThinking ? (
               <>

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Text-to-Speech (TTS) helper using browser Web Speech API with fail-safe timeout.
+ * Text-to-Speech (TTS) helper configured for a Male Executive Technical Voice.
  */
 export function speakText(
   text: string,
@@ -21,17 +21,38 @@ export function speakText(
   window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.0;
-  utterance.pitch = 1.0;
+  
+  // Executive Male Voice Audio Settings
+  utterance.pitch = 0.92; // Deep, confident male pitch
+  utterance.rate = 0.95;  // Clear, articulate pacing
 
-  // Try selecting an English natural voice
-  const voices = window.speechSynthesis.getVoices();
-  const preferredVoice = voices.find(
-    (v) => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel'))
-  ) || voices.find((v) => v.lang.startsWith('en'));
+  const selectMaleVoice = () => {
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return;
 
-  if (preferredVoice) {
-    utterance.voice = preferredVoice;
+    // Search for preferred English Male Voices
+    const maleVoice =
+      voices.find(
+        (v) =>
+          v.lang.startsWith('en') &&
+          (v.name.includes('David') ||
+            v.name.includes('Daniel') ||
+            v.name.includes('George') ||
+            v.name.includes('Guy') ||
+            v.name.includes('James') ||
+            v.name.includes('Alex') ||
+            v.name.toLowerCase().includes('male'))
+      ) ||
+      voices.find((v) => v.lang.startsWith('en'));
+
+    if (maleVoice) {
+      utterance.voice = maleVoice;
+    }
+  };
+
+  selectMaleVoice();
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = selectMaleVoice;
   }
 
   let hasEnded = false;
@@ -51,8 +72,8 @@ export function speakText(
 
   window.speechSynthesis.speak(utterance);
 
-  // Safety Timeout: Auto-finish after 6 seconds max so UI NEVER freezes
-  const durationMs = Math.min(8000, Math.max(3500, text.length * 70));
+  // Safety Timeout: Auto-finish after text duration so UI NEVER freezes
+  const durationMs = Math.min(9000, Math.max(3500, text.length * 75));
   setTimeout(finish, durationMs);
 }
 
