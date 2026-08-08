@@ -1,14 +1,14 @@
 'use client';
 
 const IOS_ANDROID_MALE_NAMES = [
+  'male', 'google uk english male', 'google us english male',
   'daniel', 'fred', 'arthur', 'aaron', 'gordon', 'rishi', 'nicky',
-  'david', 'guy', 'george', 'james', 'alex', 'male',
-  'google us english male', 'google uk english male'
+  'david', 'guy', 'george', 'james', 'alex'
 ];
 
 const FEMALE_NAMES = [
   'samantha', 'karen', 'victoria', 'zira', 'siri', 'tessa',
-  'moira', 'fiona', 'veena', 'female'
+  'moira', 'fiona', 'veena', 'female', 'google us english', 'google uk english'
 ];
 
 function getMaleVoice(): SpeechSynthesisVoice | null {
@@ -17,21 +17,24 @@ function getMaleVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
   if (!voices || voices.length === 0) return null;
 
-  // 1. Explicit Male Voice Match (iOS Daniel/Fred/Arthur, Windows David/Guy, Android Male)
-  const maleMatch = voices.find((v) => {
+  const englishVoices = voices.filter((v) => v.lang.startsWith('en'));
+
+  // 1. Explicit Male Match (Name contains male keywords)
+  const explicitMale = englishVoices.find((v) => {
     const nameLower = v.name.toLowerCase();
     return IOS_ANDROID_MALE_NAMES.some((m) => nameLower.includes(m));
   });
-  if (maleMatch) return maleMatch;
+  if (explicitMale) return explicitMale;
 
-  // 2. Any English voice that is NOT female
-  const nonFemale = voices.find((v) => {
+  // 2. Strict Filter out Female voices on Android (Google US English default is female)
+  const strictlyMaleOrNonFemale = englishVoices.find((v) => {
     const nameLower = v.name.toLowerCase();
-    return v.lang.startsWith('en') && !FEMALE_NAMES.some((f) => nameLower.includes(f));
+    const isFemale = FEMALE_NAMES.some((f) => nameLower.includes(f));
+    return !isFemale;
   });
-  if (nonFemale) return nonFemale;
+  if (strictlyMaleOrNonFemale) return strictlyMaleOrNonFemale;
 
-  return null;
+  return englishVoices[0] || null;
 }
 
 /**
@@ -62,8 +65,9 @@ export function speakText(
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Deep Baritone Male Pitch & Executive Pacing
-    utterance.pitch = 0.75;
+    // Deep Baritone Male Pitch (0.55 guarantees male frequency on Android Google TTS Engine)
+    const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    utterance.pitch = isMobile ? 0.55 : 0.85; 
     utterance.rate = 0.95;
 
     if (voice) {
@@ -92,17 +96,15 @@ export function speakText(
     setTimeout(finish, durationMs);
   };
 
-  // Check for male voice with retries to handle iOS Safari async voice hydration
+  // Check for male voice with retries to handle Android / iOS async voice hydration
   const attemptVoiceSelection = (retriesLeft: number) => {
     const maleVoice = getMaleVoice();
 
-    // If male voice found or no retries left, speak now
     if (maleVoice || retriesLeft <= 0) {
       doSpeak(maleVoice);
       return;
     }
 
-    // iOS Safari returns Samantha first before loading Daniel/Fred/Arthur 150ms later
     setTimeout(() => attemptVoiceSelection(retriesLeft - 1), 150);
   };
 
