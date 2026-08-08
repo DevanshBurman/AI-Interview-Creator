@@ -1,40 +1,37 @@
 'use client';
 
-const FEMALE_VOICE_NAMES = [
+const IOS_ANDROID_MALE_NAMES = [
+  'daniel', 'fred', 'arthur', 'aaron', 'gordon', 'rishi', 'nicky',
+  'david', 'guy', 'george', 'james', 'alex', 'male',
+  'google us english male', 'google uk english male'
+];
+
+const FEMALE_NAMES = [
   'samantha', 'karen', 'victoria', 'zira', 'siri', 'tessa',
-  'moira', 'fiona', 'veena', 'female', 'google uk english female', 'google us english female'
+  'moira', 'fiona', 'veena', 'female'
 ];
 
-const MALE_VOICE_NAMES = [
-  'david', 'daniel', 'george', 'guy', 'james', 'alex',
-  'aaron', 'arthur', 'fred', 'rishi', 'gordon', 'male',
-  'google us english male', 'google uk english male', 'en-us-language'
-];
-
-function findBestMaleVoice(): SpeechSynthesisVoice | null {
+function getMaleVoice(): SpeechSynthesisVoice | null {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
 
   const voices = window.speechSynthesis.getVoices();
   if (!voices || voices.length === 0) return null;
 
-  const englishVoices = voices.filter((v) => v.lang.startsWith('en'));
-  if (englishVoices.length === 0) return voices[0] || null;
-
-  // 1. Explicit Male Name Match
-  const explicitMale = englishVoices.find((v) => {
+  // 1. Explicit Male Voice Match (iOS Daniel/Fred/Arthur, Windows David/Guy, Android Male)
+  const maleMatch = voices.find((v) => {
     const nameLower = v.name.toLowerCase();
-    return MALE_VOICE_NAMES.some((m) => nameLower.includes(m));
+    return IOS_ANDROID_MALE_NAMES.some((m) => nameLower.includes(m));
   });
-  if (explicitMale) return explicitMale;
+  if (maleMatch) return maleMatch;
 
-  // 2. Filter out female voice names
-  const nonFemale = englishVoices.find((v) => {
+  // 2. Any English voice that is NOT female
+  const nonFemale = voices.find((v) => {
     const nameLower = v.name.toLowerCase();
-    return !FEMALE_VOICE_NAMES.some((f) => nameLower.includes(f));
+    return v.lang.startsWith('en') && !FEMALE_NAMES.some((f) => nameLower.includes(f));
   });
   if (nonFemale) return nonFemale;
 
-  return englishVoices[0];
+  return null;
 }
 
 /**
@@ -57,16 +54,20 @@ export function speakText(
   // Cancel any ongoing speech
   window.speechSynthesis.cancel();
 
-  const doSpeak = () => {
+  let hasSpoken = false;
+
+  const doSpeak = (voice: SpeechSynthesisVoice | null) => {
+    if (hasSpoken) return;
+    hasSpoken = true;
+
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Deep Baritone Male Audio Settings for Mobile & Desktop
-    utterance.pitch = 0.75; // Low pitch guarantees male voice frequency
-    utterance.rate = 0.95;  // Clear, executive pacing
+    // Deep Baritone Male Pitch & Executive Pacing
+    utterance.pitch = 0.75;
+    utterance.rate = 0.95;
 
-    const maleVoice = findBestMaleVoice();
-    if (maleVoice) {
-      utterance.voice = maleVoice;
+    if (voice) {
+      utterance.voice = voice;
     }
 
     let hasEnded = false;
@@ -91,18 +92,32 @@ export function speakText(
     setTimeout(finish, durationMs);
   };
 
-  const voices = window.speechSynthesis.getVoices();
-  if (voices && voices.length > 0) {
-    doSpeak();
-  } else {
-    // Mobile browsers (iOS Safari / Chrome Android) populate voices asynchronously
+  // Check for male voice with retries to handle iOS Safari async voice hydration
+  const attemptVoiceSelection = (retriesLeft: number) => {
+    const maleVoice = getMaleVoice();
+
+    // If male voice found or no retries left, speak now
+    if (maleVoice || retriesLeft <= 0) {
+      doSpeak(maleVoice);
+      return;
+    }
+
+    // iOS Safari returns Samantha first before loading Daniel/Fred/Arthur 150ms later
+    setTimeout(() => attemptVoiceSelection(retriesLeft - 1), 150);
+  };
+
+  // Pre-trigger voice loading on mobile devices
+  window.speechSynthesis.getVoices();
+
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
     window.speechSynthesis.onvoiceschanged = () => {
       window.speechSynthesis.onvoiceschanged = null;
-      doSpeak();
+      const voice = getMaleVoice();
+      if (voice) doSpeak(voice);
     };
-    // Fallback trigger if onvoiceschanged doesn't fire immediately
-    setTimeout(doSpeak, 150);
   }
+
+  attemptVoiceSelection(3);
 }
 
 export function stopSpeech() {
