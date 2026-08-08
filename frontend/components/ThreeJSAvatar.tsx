@@ -32,14 +32,16 @@ export default function ThreeJSAvatar({
     isThinkingRef.current = isThinking;
   }, [isThinking]);
 
-  // Three.js Mount Once Effect
+  // Three.js Mount Once Effect with Safe DOM Lifecycle
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Clear any residual canvas children before setup
-    while (container.firstChild) {
-      container.removeChild(container.firstChild);
+    // Safely clear inner HTML without causing React Virtual DOM removeChild collisions
+    try {
+      container.innerHTML = '';
+    } catch (e) {
+      // Ignore initial DOM clearing error
     }
 
     const width = container.clientWidth || 300;
@@ -138,7 +140,7 @@ export default function ThreeJSAvatar({
       }
     );
 
-    // Continuous Render Loop (Never Unmounts / Disposes)
+    // Continuous Render Loop
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
@@ -180,15 +182,24 @@ export default function ThreeJSAvatar({
 
     window.addEventListener('resize', handleResize);
 
+    // Fail-safe cleanup block using try-catch to prevent React removeChild crash
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
+      try {
+        if (renderer.domElement && renderer.domElement.parentNode === container) {
+          container.removeChild(renderer.domElement);
+        }
+      } catch (e) {
+        // Suppress DOM removal race condition safely
       }
-      renderer.dispose();
+      try {
+        renderer.dispose();
+      } catch (e) {
+        // Ignore WebGL disposal error
+      }
     };
-  }, []); // Run ONCE on mount to ensure WebGL context persistence!
+  }, []); // Mount ONCE
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-2">
