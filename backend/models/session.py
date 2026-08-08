@@ -1,0 +1,21 @@
+import time
+from typing import List, Dict, Any, Optional
+from pydantic import BaseModel, Field
+from backend.schemas.candidate import CandidateProfile
+
+class InterviewSession(BaseModel):
+    sessionId: str = Field(..., description="Unique interview session ID")
+    candidate: CandidateProfile = Field(..., description="Candidate profile data")
+    roadmap: List[int] = Field(default_factory=list, description="Planned curriculum days for interview")
+    current_question_index: int = Field(0, description="Index of current question in roadmap")
+    previous_questions: List[str] = Field(default_factory=list, description="List of questions asked")
+    candidate_responses: List[str] = Field(default_factory=list, description="List of candidate responses")
+    evaluation_history: List[Dict[str, Any]] = Field(default_factory=list, description="Evaluation results")
+    covered_days: List[int] = Field(default_factory=list, description="Curriculum days completed")
+    is_completed: bool = Field(False, description="Whether the session is finished")
+    created_at: float = Field(default_factory=time.time, description="Creation timestamp")
+    updated_at: float = Field(default_factory=time.time, description="Last update timestamp")
+
+    def update_timestamp(self) -> None:
+        """Update last modified timestamp."""
+        self.updated_at = time.time()
