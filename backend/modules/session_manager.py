@@ -19,7 +19,7 @@ class SessionManager:
             session = InterviewSession(
                 sessionId=session_id,
                 candidate=candidate,
-                roadmap=[],
+                roadmap=None,
                 current_question_index=0,
                 previous_questions=[],
                 candidate_responses=[],

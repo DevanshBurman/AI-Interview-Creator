@@ -15,6 +15,10 @@ from backend.schemas.curriculum import (
     CurriculumModule,
     CurriculumData,
 )
+from backend.schemas.roadmap import (
+    RoadmapSlot,
+    InterviewRoadmap,
+)
 
 __all__ = [
     "MemberProfile",
@@ -28,4 +32,6 @@ __all__ = [
     "CurriculumDay",
     "CurriculumModule",
     "CurriculumData",
+    "RoadmapSlot",
+    "InterviewRoadmap",
 ]
