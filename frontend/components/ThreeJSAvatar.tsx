@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 interface ThreeJSAvatarProps {
   isSpeaking: boolean;
@@ -22,15 +23,15 @@ export default function ThreeJSAvatar({
     const container = containerRef.current;
     if (!container) return;
 
-    // 1. Viewport & Camera Setup
+    // 1. Viewport Setup
     const width = container.clientWidth || 300;
     const height = container.clientHeight || 300;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf8fafc);
 
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0, 1.5); // Camera framed to fit full head & upper torso
+    // Wide angle perspective camera
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -44,12 +45,20 @@ export default function ThreeJSAvatar({
 
     container.appendChild(renderer.domElement);
 
-    // 2. Studio Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
+    // Add OrbitControls so user can interactively rotate/zoom/pan the 3D interviewer
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 1.8;
+    controls.minDistance = 0.5;
+    controls.maxDistance = 4;
+
+    // 2. Studio Lighting Setup
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.7);
-    keyLight.position.set(2, 3.5, 3);
+    const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.8);
+    keyLight.position.set(2, 4, 3);
     keyLight.castShadow = true;
     scene.add(keyLight);
 
@@ -57,7 +66,7 @@ export default function ThreeJSAvatar({
     fillLight.position.set(-2, 2, 2);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xc7d2fe, 1.1);
+    const rimLight = new THREE.DirectionalLight(0xc7d2fe, 1.2);
     rimLight.position.set(0, 3, -2);
     scene.add(rimLight);
 
@@ -65,27 +74,34 @@ export default function ThreeJSAvatar({
     const loader = new GLTFLoader();
     let avatarModel: THREE.Group | null = null;
     let jawBone: THREE.Object3D | null = null;
-    let initialY = 0;
 
     loader.load(
       '/models/interviewer.glb',
       (gltf) => {
         avatarModel = gltf.scene;
 
-        // Calculate model bounding box
+        // Reset model origin to 0,0,0
+        avatarModel.position.set(0, 0, 0);
+
+        // Find actual mesh bounding box
         const box = new THREE.Box3().setFromObject(avatarModel);
-        const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
 
-        // Offset from box.max.y (top of head) to pull full head into canvas frame
-        initialY = -box.max.y + size.y * 0.38;
-
-        // Position head level centered in viewport
-        avatarModel.position.set(-center.x, initialY, -center.z);
-
+        // Normalize scale to fit nicely in 1.0 unit bounding space
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 1.6 / (maxDim || 1);
-        avatarModel.scale.set(scale, scale, scale);
+        const scaleFactor = 1.0 / (maxDim || 1);
+        avatarModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+        // Re-calculate box after scaling
+        box.setFromObject(avatarModel);
+        box.getCenter(center);
+        box.getSize(size);
+
+        // Position model base so the head sits naturally at y = 0.25
+        avatarModel.position.x = -center.x;
+        avatarModel.position.y = -box.min.y - size.y * 0.1; // Ground model base
+        avatarModel.position.z = -center.z;
 
         avatarModel.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
@@ -99,7 +115,12 @@ export default function ThreeJSAvatar({
           }
         });
 
-        camera.lookAt(0, 0, 0); // Camera looks directly at centered face
+        // Set camera target directly on face (top 20% of model height)
+        const faceY = (avatarModel.position.y + size.y * 0.82);
+        camera.position.set(0, faceY, 1.2);
+        controls.target.set(0, faceY, 0);
+        controls.update();
+
         scene.add(avatarModel);
         setModelLoaded(true);
       },
@@ -117,18 +138,11 @@ export default function ThreeJSAvatar({
       const elapsedTime = clock.getElapsedTime();
 
       if (avatarModel) {
-        avatarModel.position.y = initialY + Math.sin(elapsedTime * 1.5) * 0.005;
-        avatarModel.rotation.y = Math.sin(elapsedTime * 0.8) * 0.04;
+        controls.update();
 
         if (isSpeaking) {
           if (jawBone) {
             jawBone.rotation.x = Math.abs(Math.sin(elapsedTime * 16)) * 0.18;
-          } else {
-            avatarModel.scale.set(
-              avatarModel.scale.x,
-              avatarModel.scale.y * (1 + Math.abs(Math.sin(elapsedTime * 14)) * 0.015),
-              avatarModel.scale.z
-            );
           }
         }
 
@@ -170,10 +184,15 @@ export default function ThreeJSAvatar({
     <div className="relative w-full h-full flex flex-col items-center justify-center p-2">
       <div
         ref={containerRef}
-        className="relative w-full aspect-square max-w-[300px] rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-slate-50 flex items-center justify-center"
+        className="relative w-full aspect-square max-w-[300px] rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-slate-50 flex items-center justify-center cursor-grab active:cursor-grabbing"
       >
+        {/* Interactive Tip Pill */}
+        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/60 backdrop-blur-sm text-[9px] font-mono text-slate-300 pointer-events-none z-10">
+          Mouse / Touch to Rotate 3D
+        </div>
+
         {/* Compact Status Pill at Very Bottom */}
-        <div className="absolute bottom-1 left-2 right-2 px-3 py-1 rounded-xl bg-slate-900/90 backdrop-blur-md text-[10px] font-semibold flex items-center justify-between text-white shadow-md z-10">
+        <div className="absolute bottom-1 left-2 right-2 px-3 py-1 rounded-xl bg-slate-900/90 backdrop-blur-md text-[10px] font-semibold flex items-center justify-between text-white shadow-md z-10 pointer-events-none">
           <div className="flex items-center gap-1.5 truncate">
             {isSpeaking ? (
               <>
