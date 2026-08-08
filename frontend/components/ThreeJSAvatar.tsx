@@ -19,18 +19,35 @@ export default function ThreeJSAvatar({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [modelLoaded, setModelLoaded] = useState<boolean>(false);
 
+  // Mutable refs to prevent React re-mounting / WebGL context destruction
+  const isSpeakingRef = useRef<boolean>(isSpeaking);
+  const isThinkingRef = useRef<boolean>(isThinking);
+
+  // Sync props to refs without re-running useEffect
+  useEffect(() => {
+    isSpeakingRef.current = isSpeaking;
+  }, [isSpeaking]);
+
+  useEffect(() => {
+    isThinkingRef.current = isThinking;
+  }, [isThinking]);
+
+  // Three.js Mount Once Effect
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // 1. Viewport Setup
+    // Clear any residual canvas children before setup
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+
     const width = container.clientWidth || 300;
     const height = container.clientHeight || 300;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf8fafc);
 
-    // Wide angle perspective camera
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -45,7 +62,6 @@ export default function ThreeJSAvatar({
 
     container.appendChild(renderer.domElement);
 
-    // Add OrbitControls so user can interactively rotate/zoom/pan the 3D interviewer
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -53,7 +69,7 @@ export default function ThreeJSAvatar({
     controls.minDistance = 0.5;
     controls.maxDistance = 4;
 
-    // 2. Studio Lighting Setup
+    // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     scene.add(ambientLight);
 
@@ -70,37 +86,30 @@ export default function ThreeJSAvatar({
     rimLight.position.set(0, 3, -2);
     scene.add(rimLight);
 
-    // 3. Load 3D GLB Model
-    const loader = new GLTFLoader();
     let avatarModel: THREE.Group | null = null;
     let jawBone: THREE.Object3D | null = null;
 
+    // Load GLB Model ONCE
+    const loader = new GLTFLoader();
     loader.load(
       '/models/interviewer.glb',
       (gltf) => {
         avatarModel = gltf.scene;
 
-        // Reset model origin to 0,0,0
-        avatarModel.position.set(0, 0, 0);
-
-        // Find actual mesh bounding box
         const box = new THREE.Box3().setFromObject(avatarModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
-        // Normalize scale to fit nicely in 1.0 unit bounding space
         const maxDim = Math.max(size.x, size.y, size.z);
         const scaleFactor = 1.0 / (maxDim || 1);
         avatarModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
-        // Re-calculate box after scaling
         box.setFromObject(avatarModel);
         box.getCenter(center);
         box.getSize(size);
 
-        // Position model base so the head sits naturally at y = 0.25
         avatarModel.position.x = -center.x;
-        avatarModel.position.y = -box.min.y - size.y * 0.1; // Ground model base
+        avatarModel.position.y = -box.min.y - size.y * 0.1;
         avatarModel.position.z = -center.z;
 
         avatarModel.traverse((child) => {
@@ -115,8 +124,7 @@ export default function ThreeJSAvatar({
           }
         });
 
-        // Set camera target directly on face (top 20% of model height)
-        const faceY = (avatarModel.position.y + size.y * 0.82);
+        const faceY = avatarModel.position.y + size.y * 0.82;
         camera.position.set(0, faceY, 1.2);
         controls.target.set(0, faceY, 0);
         controls.update();
@@ -130,7 +138,7 @@ export default function ThreeJSAvatar({
       }
     );
 
-    // 4. Animation Loop
+    // Continuous Render Loop (Never Unmounts / Disposes)
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
@@ -140,13 +148,15 @@ export default function ThreeJSAvatar({
       if (avatarModel) {
         controls.update();
 
-        if (isSpeaking) {
+        if (isSpeakingRef.current) {
           if (jawBone) {
             jawBone.rotation.x = Math.abs(Math.sin(elapsedTime * 16)) * 0.18;
           }
+        } else if (jawBone) {
+          jawBone.rotation.x = 0;
         }
 
-        if (isThinking) {
+        if (isThinkingRef.current) {
           avatarModel.rotation.z = Math.sin(elapsedTime * 2) * 0.02;
         } else {
           avatarModel.rotation.z = 0;
@@ -178,7 +188,7 @@ export default function ThreeJSAvatar({
       }
       renderer.dispose();
     };
-  }, [isSpeaking, isThinking]);
+  }, []); // Run ONCE on mount to ensure WebGL context persistence!
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-2">
@@ -186,6 +196,12 @@ export default function ThreeJSAvatar({
         ref={containerRef}
         className="relative w-full aspect-square max-w-[300px] rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-slate-50 flex items-center justify-center cursor-grab active:cursor-grabbing"
       >
+        {!modelLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-100 text-xs text-slate-500 font-medium">
+            Loading 3D Presenter...
+          </div>
+        )}
+
         {/* Interactive Tip Pill */}
         <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-900/60 backdrop-blur-sm text-[9px] font-mono text-slate-300 pointer-events-none z-10">
           Mouse / Touch to Rotate 3D
