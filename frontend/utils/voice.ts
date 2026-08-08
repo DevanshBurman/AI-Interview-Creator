@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Text-to-Speech (TTS) helper configured for a Male Executive Technical Voice.
+ * Text-to-Speech (TTS) helper configured for a Male Executive Technical Voice across Desktop & Mobile.
  */
 export function speakText(
   text: string,
@@ -23,14 +23,14 @@ export function speakText(
   const utterance = new SpeechSynthesisUtterance(text);
   
   // Executive Male Voice Audio Settings
-  utterance.pitch = 0.92; // Deep, confident male pitch
+  utterance.pitch = 0.85; // Deeper, confident male pitch across all mobile/desktop devices
   utterance.rate = 0.95;  // Clear, articulate pacing
 
   const selectMaleVoice = () => {
     const voices = window.speechSynthesis.getVoices();
     if (!voices || voices.length === 0) return;
 
-    // Search for preferred English Male Voices
+    // Comprehensive Mobile & Desktop English Male Voices Search
     const maleVoice =
       voices.find(
         (v) =>
@@ -41,8 +41,15 @@ export function speakText(
             v.name.includes('Guy') ||
             v.name.includes('James') ||
             v.name.includes('Alex') ||
+            v.name.includes('Aaron') ||
+            v.name.includes('Arthur') ||
+            v.name.includes('Fred') ||
+            v.name.includes('Rishi') ||
+            v.name.includes('Google US English Male') ||
+            v.name.includes('Google UK English Male') ||
             v.name.toLowerCase().includes('male'))
       ) ||
+      voices.find((v) => v.lang.startsWith('en') && !v.name.includes('Samantha') && !v.name.includes('Victoria') && !v.name.includes('Karen') && !v.name.includes('Zira') && !v.name.includes('Siri Female')) ||
       voices.find((v) => v.lang.startsWith('en'));
 
     if (maleVoice) {

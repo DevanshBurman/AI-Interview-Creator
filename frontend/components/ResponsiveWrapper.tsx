@@ -30,9 +30,9 @@ export const ResponsiveWrapper: React.FC<ResponsiveWrapperProps> = ({
     const reducedMotion = typeof window !== 'undefined'
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
       : false;
-    const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1024 : false;
 
-    setCanRender3D(isDesktop && !reducedMotion && checkWebGL());
+    // Enable 3D WebGL stage on all devices (mobile + desktop) if WebGL is supported
+    setCanRender3D(!reducedMotion && checkWebGL());
   }, []);
 
   if (canRender3D) {
