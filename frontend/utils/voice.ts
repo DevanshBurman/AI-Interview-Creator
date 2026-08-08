@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Text-to-Speech (TTS) helper using browser Web Speech API.
+ * Text-to-Speech (TTS) helper using browser Web Speech API with fail-safe timeout.
  */
 export function speakText(
   text: string,
@@ -10,6 +10,10 @@ export function speakText(
   muted: boolean = false
 ) {
   if (muted || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    if (onStart) onStart();
+    setTimeout(() => {
+      if (onEnd) onEnd();
+    }, 4000);
     return;
   }
 
@@ -30,19 +34,26 @@ export function speakText(
     utterance.voice = preferredVoice;
   }
 
+  let hasEnded = false;
+  const finish = () => {
+    if (!hasEnded) {
+      hasEnded = true;
+      if (onEnd) onEnd();
+    }
+  };
+
   utterance.onstart = () => {
     if (onStart) onStart();
   };
 
-  utterance.onend = () => {
-    if (onEnd) onEnd();
-  };
-
-  utterance.onerror = () => {
-    if (onEnd) onEnd();
-  };
+  utterance.onend = finish;
+  utterance.onerror = finish;
 
   window.speechSynthesis.speak(utterance);
+
+  // Safety Timeout: Auto-finish after 6 seconds max so UI NEVER freezes
+  const durationMs = Math.min(8000, Math.max(3500, text.length * 70));
+  setTimeout(finish, durationMs);
 }
 
 export function stopSpeech() {
