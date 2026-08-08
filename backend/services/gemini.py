@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import random
 from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
 
@@ -23,12 +24,11 @@ class GeminiService:
     - Encapsulates all interactions with the Google Gemini API.
     - Reads GEMINI_API_KEY from environment variables.
     - Formats templates from the prompts directory.
-    - Implements reusable AI reasoning methods:
+    - Implements reusable AI reasoning methods with dynamic randomized variations:
         1. generate_question(...)
         2. generate_followup(...)
         3. evaluate_response(...)
         4. generate_final_feedback(...)
-    - Handles errors gracefully with fallback responses.
     """
 
     def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-2.5-flash"):
@@ -71,7 +71,7 @@ class GeminiService:
         objectives: List[str],
         conversation_context: str = "None yet."
     ) -> str:
-        """Generate next curriculum question."""
+        """Generate next curriculum question with dynamic variations."""
         objectives_str = "\n".join(f"- {obj}" for obj in objectives) if objectives else "- General understanding"
         prompt = QUESTION_GENERATION_PROMPT.format(
             candidate_name=candidate_name,
@@ -92,8 +92,16 @@ class GeminiService:
         except Exception as e:
             logger.error(f"Gemini generate_question API call failed: {e}")
 
-        # Fallback question if API call fails or key is missing
-        return f"Can you explain the core engineering concepts behind Day {day_num}: {day_title} and how you applied them?"
+        # Dynamic randomized fallback questions to ensure variety
+        fallbacks = [
+            f"Can you walk me through your engineering implementation for Day {day_num}: {day_title}?",
+            f"Regarding Day {day_num}: {day_title}, what were the key technical challenges you faced and how did you resolve them?",
+            f"How did you design and structure your solution for Day {day_num}: {day_title} in your cohort project?",
+            f"Can you explain the core architecture behind Day {day_num}: {day_title} and why you chose that specific approach?",
+            f"In Day {day_num}: {day_title}, what performance trade-offs did you evaluate during development?",
+            f"Could you break down the step-by-step technical pipeline you built for Day {day_num}: {day_title}?"
+        ]
+        return random.choice(fallbacks)
 
     def generate_followup_question(
         self,
@@ -104,7 +112,7 @@ class GeminiService:
         candidate_answer: str,
         objectives: List[str]
     ) -> str:
-        """Generate follow-up probing question."""
+        """Generate follow-up probing question with dynamic variations."""
         objectives_str = "\n".join(f"- {obj}" for obj in objectives) if objectives else "- Depth of reasoning"
         prompt = FOLLOWUP_QUESTION_PROMPT.format(
             candidate_name=candidate_name,
@@ -123,8 +131,15 @@ class GeminiService:
         except Exception as e:
             logger.error(f"Gemini generate_followup_question failed: {e}")
 
-        # Fallback follow-up question
-        return f"Could you elaborate further on your technical implementation choices regarding {day_title}?"
+        # Dynamic randomized follow-up variations
+        followup_fallbacks = [
+            f"Could you elaborate further on the architectural decisions you made for {day_title}?",
+            f"What edge cases or potential bottlenecks did you consider when implementing {day_title}?",
+            f"If you were scaling your solution for {day_title} to production traffic, what would you optimize next?",
+            f"Can you go deeper into the underlying data flow and error handling for {day_title}?",
+            f"How did you test and validate the correctness of your {day_title} implementation?"
+        ]
+        return random.choice(followup_fallbacks)
 
     def evaluate_response(
         self,
@@ -147,7 +162,6 @@ class GeminiService:
         try:
             if self.is_configured():
                 res_text = self._call_gemini_text(prompt)
-                # Sanitize markdown codeblocks if present
                 clean_json = res_text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
                 parsed = json.loads(clean_json)
                 return {
@@ -168,7 +182,7 @@ class GeminiService:
                 "score": 2,
                 "technical_correctness": False,
                 "followUpRequired": True,
-                "gaps": [f"Insufficient or gibberish response '{candidate_answer}' provided."],
+                "gaps": [f"Insufficient or short response '{candidate_answer}' provided."],
                 "strengths": [],
                 "reasoning": "Candidate response lacks technical substance."
             }

@@ -1,3 +1,4 @@
+import random
 from typing import List, Set, Dict, Any, Optional
 from backend.schemas.candidate import CandidateProfile
 from backend.schemas.roadmap import InterviewRoadmap, RoadmapSlot
@@ -12,14 +13,14 @@ class Planner:
     - Prioritizes completed missions (`passed=True`).
     - Treats skipped topics (`skipped=True`) only as optional probing opportunities.
     - Selects at least 4 distinct curriculum days spread across modules.
-    - Generates a structured sequence of 8 interview question slots.
+    - Generates a dynamic, randomized sequence of 8 interview question slots (shuffled each run).
     """
 
     DEFAULT_FALLBACK_DAYS = [7, 11, 22, 28]
 
     def build_roadmap(self, candidate: CandidateProfile) -> InterviewRoadmap:
         """
-        Analyze candidate profile and construct a structured 8-question interview roadmap.
+        Analyze candidate profile and construct a randomized 8-question interview roadmap.
         """
         # 1. Analyze completed (passed) missions and skipped topics
         passed_days: List[int] = []
@@ -33,6 +34,10 @@ class Planner:
                 if mission.day not in skipped_days:
                     skipped_days.append(mission.day)
 
+        # Shuffle passed_days to ensure randomized topic progression for each candidate interview
+        random.shuffle(passed_days)
+        random.shuffle(skipped_days)
+
         # 2. Select distinct curriculum days (minimum 4 days)
         selected_days: List[int] = list(passed_days)
 
@@ -45,16 +50,20 @@ class Planner:
                     break
 
         if len(selected_days) < 4:
-            for f_day in self.DEFAULT_FALLBACK_DAYS:
+            fallback_copy = list(self.DEFAULT_FALLBACK_DAYS)
+            random.shuffle(fallback_copy)
+            for f_day in fallback_copy:
                 if f_day not in selected_days:
                     selected_days.append(f_day)
                 if len(selected_days) >= 4:
                     break
 
-        # Sort selected days for logical progression
+        # Primary pool for random topic rotation
         primary_pool = [d for d in selected_days if d not in skipped_days]
         if not primary_pool:
             primary_pool = list(selected_days)
+
+        random.shuffle(primary_pool)
 
         # 3. Plan 8 question slots
         slots: List[RoadmapSlot] = []
@@ -62,7 +71,7 @@ class Planner:
 
         # Allocate 1 slot for probing a skipped topic if available
         probing_day: Optional[int] = skipped_days[0] if skipped_days else None
-        probing_slot_index = 6 if probing_day else None  # probe towards later half of interview
+        probing_slot_index = random.choice([5, 6, 7]) if probing_day else None  # randomize probing position
 
         primary_idx = 0
 
@@ -99,7 +108,8 @@ class Planner:
             slots.append(slot)
 
         # Extract unique covered curriculum days across all 8 slots
-        covered_days = sorted(list(set(slot.day for slot in slots)))
+        covered_days = list(set(slot.day for slot in slots))
+        random.shuffle(covered_days)
 
         return InterviewRoadmap(
             candidate_id=candidate.member.id,
