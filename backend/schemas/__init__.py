@@ -10,6 +10,11 @@ from backend.schemas.interview import (
     InterviewResponse,
     ErrorResponse,
 )
+from backend.schemas.curriculum import (
+    CurriculumDay,
+    CurriculumModule,
+    CurriculumData,
+)
 
 __all__ = [
     "MemberProfile",
@@ -20,4 +25,7 @@ __all__ = [
     "InterviewRequest",
     "InterviewResponse",
     "ErrorResponse",
+    "CurriculumDay",
+    "CurriculumModule",
+    "CurriculumData",
 ]
