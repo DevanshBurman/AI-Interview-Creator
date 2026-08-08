@@ -19,6 +19,9 @@ from backend.schemas.roadmap import (
     RoadmapSlot,
     InterviewRoadmap,
 )
+from backend.schemas.evaluation import (
+    EvaluationResult,
+)
 
 __all__ = [
     "MemberProfile",
@@ -34,4 +37,5 @@ __all__ = [
     "CurriculumData",
     "RoadmapSlot",
     "InterviewRoadmap",
+    "EvaluationResult",
 ]
