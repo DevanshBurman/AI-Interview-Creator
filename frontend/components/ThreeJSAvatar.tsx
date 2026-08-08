@@ -29,8 +29,8 @@ export default function ThreeJSAvatar({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf8fafc);
 
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
-    camera.position.set(0, 0, 1.4); // Focused directly on origin (0,0,0)
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(0, 0, 1.5); // Camera framed to fit full head & upper torso
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -77,15 +77,14 @@ export default function ThreeJSAvatar({
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
 
-        // Target face/head level (around top 20% of bounding box height)
-        const faceLevelY = box.max.y - size.y * 0.22;
-        initialY = -faceLevelY;
+        // Offset from box.max.y (top of head) to pull full head into canvas frame
+        initialY = -box.max.y + size.y * 0.38;
 
-        // Position face level directly at origin (0, 0, 0)
+        // Position head level centered in viewport
         avatarModel.position.set(-center.x, initialY, -center.z);
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 1.55 / (maxDim || 1);
+        const scale = 1.6 / (maxDim || 1);
         avatarModel.scale.set(scale, scale, scale);
 
         avatarModel.traverse((child) => {
@@ -100,7 +99,7 @@ export default function ThreeJSAvatar({
           }
         });
 
-        camera.lookAt(0, -0.05, 0); // Focus directly on centered face
+        camera.lookAt(0, 0, 0); // Camera looks directly at centered face
         scene.add(avatarModel);
         setModelLoaded(true);
       },
@@ -118,7 +117,7 @@ export default function ThreeJSAvatar({
       const elapsedTime = clock.getElapsedTime();
 
       if (avatarModel) {
-        avatarModel.position.y = initialY + Math.sin(elapsedTime * 1.5) * 0.006;
+        avatarModel.position.y = initialY + Math.sin(elapsedTime * 1.5) * 0.005;
         avatarModel.rotation.y = Math.sin(elapsedTime * 0.8) * 0.04;
 
         if (isSpeaking) {
