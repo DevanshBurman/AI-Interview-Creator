@@ -162,10 +162,21 @@ class GeminiService:
             logger.error(f"Gemini evaluate_response failed: {e}")
 
         # Fallback evaluation structure
+        words = candidate_answer.strip().split()
+        if len(words) < 4:
+            return {
+                "score": 2,
+                "technical_correctness": False,
+                "followUpRequired": True,
+                "gaps": [f"Insufficient or gibberish response '{candidate_answer}' provided."],
+                "strengths": [],
+                "reasoning": "Candidate response lacks technical substance."
+            }
+
         return {
             "score": 7,
             "technical_correctness": True,
-            "followUpRequired": len(candidate_answer.split()) < 10,
+            "followUpRequired": len(words) < 15,
             "gaps": [],
             "strengths": ["Demonstrated basic topic familiarity"],
             "reasoning": "Fallback evaluation applied."

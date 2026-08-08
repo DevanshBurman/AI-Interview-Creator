@@ -27,7 +27,11 @@ class EvaluationEngine:
         """
         Evaluate candidate response and determine follow-up necessity.
         """
-        if not answer or not answer.strip():
+        clean_ans = answer.strip() if answer else ""
+        words = clean_ans.split()
+        word_count = len(words)
+
+        if not clean_ans:
             return EvaluationResult(
                 score=1,
                 technical_correctness=False,
@@ -40,33 +44,41 @@ class EvaluationEngine:
                 reasoning="Candidate provided an empty answer."
             )
 
-        # 1. Obtain AI reasoning evaluation from Gemini service
+        # 1. Detect single-character or trivial gibberish (e.g., 'h', 'f', 'g', 'asdf')
+        is_gibberish = word_count < 4 or (word_count == 1 and len(clean_ans) < 6)
+
+        # 2. Obtain AI reasoning evaluation from Gemini service
         raw_eval = gemini_service.evaluate_response(
             day_num=day_num,
             day_title=day_title,
             question=question,
-            candidate_answer=answer,
+            candidate_answer=clean_ans,
             objectives=objectives
         )
 
-        score = max(1, min(10, int(raw_eval.get("score", 7))))
-        gaps = raw_eval.get("gaps", [])
-        strengths = raw_eval.get("strengths", [])
-        reasoning = raw_eval.get("reasoning", "Evaluated technical answer.")
+        if is_gibberish:
+            score = 2
+            technical_correctness = False
+            conceptual_understanding = False
+            practical_reasoning = False
+            communication_clarity = False
+            gaps = [f"Trivial or gibberish response '{clean_ans}' provided on Day {day_num}"]
+            strengths = []
+            reasoning = f"Answer '{clean_ans}' lacks technical substance."
+        else:
+            score = max(1, min(10, int(raw_eval.get("score", 7))))
+            gaps = raw_eval.get("gaps", [])
+            strengths = raw_eval.get("strengths", [])
+            reasoning = raw_eval.get("reasoning", "Evaluated technical answer.")
 
-        # 2. Analyze the 4 evaluation dimensions
-        words = answer.strip().split()
-        word_count = len(words)
-
-        technical_correctness = bool(raw_eval.get("technical_correctness", True) and score >= 6)
-        conceptual_understanding = bool(score >= 5 and len(gaps) <= 2)
-        practical_reasoning = bool(score >= 6 and word_count >= 15)
-        communication_clarity = bool(word_count >= 8)
+            technical_correctness = bool(raw_eval.get("technical_correctness", True) and score >= 6)
+            conceptual_understanding = bool(score >= 5 and len(gaps) <= 2)
+            practical_reasoning = bool(score >= 6 and word_count >= 15)
+            communication_clarity = bool(word_count >= 8)
 
         # 3. Determine if follow-up question is required
-        # Follow-up required if: score < 7, answer is brief (< 15 words), technical correctness is False, or AI flagged follow-up
         ai_flag = bool(raw_eval.get("followUpRequired", False))
-        follow_up_required = bool(ai_flag or score < 7 or word_count < 15 or not technical_correctness)
+        follow_up_required = bool(ai_flag or score < 7 or word_count < 15 or not technical_correctness or is_gibberish)
 
         return EvaluationResult(
             score=score,
