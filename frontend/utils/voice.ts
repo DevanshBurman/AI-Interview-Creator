@@ -1,5 +1,42 @@
 'use client';
 
+const FEMALE_VOICE_NAMES = [
+  'samantha', 'karen', 'victoria', 'zira', 'siri', 'tessa',
+  'moira', 'fiona', 'veena', 'female', 'google uk english female', 'google us english female'
+];
+
+const MALE_VOICE_NAMES = [
+  'david', 'daniel', 'george', 'guy', 'james', 'alex',
+  'aaron', 'arthur', 'fred', 'rishi', 'gordon', 'male',
+  'google us english male', 'google uk english male', 'en-us-language'
+];
+
+function findBestMaleVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  const englishVoices = voices.filter((v) => v.lang.startsWith('en'));
+  if (englishVoices.length === 0) return voices[0] || null;
+
+  // 1. Explicit Male Name Match
+  const explicitMale = englishVoices.find((v) => {
+    const nameLower = v.name.toLowerCase();
+    return MALE_VOICE_NAMES.some((m) => nameLower.includes(m));
+  });
+  if (explicitMale) return explicitMale;
+
+  // 2. Filter out female voice names
+  const nonFemale = englishVoices.find((v) => {
+    const nameLower = v.name.toLowerCase();
+    return !FEMALE_VOICE_NAMES.some((f) => nameLower.includes(f));
+  });
+  if (nonFemale) return nonFemale;
+
+  return englishVoices[0];
+}
+
 /**
  * Text-to-Speech (TTS) helper configured for a Male Executive Technical Voice across Desktop & Mobile.
  */
@@ -20,68 +57,52 @@ export function speakText(
   // Cancel any ongoing speech
   window.speechSynthesis.cancel();
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  
-  // Executive Male Voice Audio Settings
-  utterance.pitch = 0.85; // Deeper, confident male pitch across all mobile/desktop devices
-  utterance.rate = 0.95;  // Clear, articulate pacing
+  const doSpeak = () => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Deep Baritone Male Audio Settings for Mobile & Desktop
+    utterance.pitch = 0.75; // Low pitch guarantees male voice frequency
+    utterance.rate = 0.95;  // Clear, executive pacing
 
-  const selectMaleVoice = () => {
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices || voices.length === 0) return;
-
-    // Comprehensive Mobile & Desktop English Male Voices Search
-    const maleVoice =
-      voices.find(
-        (v) =>
-          v.lang.startsWith('en') &&
-          (v.name.includes('David') ||
-            v.name.includes('Daniel') ||
-            v.name.includes('George') ||
-            v.name.includes('Guy') ||
-            v.name.includes('James') ||
-            v.name.includes('Alex') ||
-            v.name.includes('Aaron') ||
-            v.name.includes('Arthur') ||
-            v.name.includes('Fred') ||
-            v.name.includes('Rishi') ||
-            v.name.includes('Google US English Male') ||
-            v.name.includes('Google UK English Male') ||
-            v.name.toLowerCase().includes('male'))
-      ) ||
-      voices.find((v) => v.lang.startsWith('en') && !v.name.includes('Samantha') && !v.name.includes('Victoria') && !v.name.includes('Karen') && !v.name.includes('Zira') && !v.name.includes('Siri Female')) ||
-      voices.find((v) => v.lang.startsWith('en'));
-
+    const maleVoice = findBestMaleVoice();
     if (maleVoice) {
       utterance.voice = maleVoice;
     }
+
+    let hasEnded = false;
+    const finish = () => {
+      if (!hasEnded) {
+        hasEnded = true;
+        if (onEnd) onEnd();
+      }
+    };
+
+    utterance.onstart = () => {
+      if (onStart) onStart();
+    };
+
+    utterance.onend = finish;
+    utterance.onerror = finish;
+
+    window.speechSynthesis.speak(utterance);
+
+    // Safety Timeout: Auto-finish after text duration so UI NEVER freezes
+    const durationMs = Math.min(9000, Math.max(3500, text.length * 75));
+    setTimeout(finish, durationMs);
   };
 
-  selectMaleVoice();
-  if (window.speechSynthesis.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = selectMaleVoice;
+  const voices = window.speechSynthesis.getVoices();
+  if (voices && voices.length > 0) {
+    doSpeak();
+  } else {
+    // Mobile browsers (iOS Safari / Chrome Android) populate voices asynchronously
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.onvoiceschanged = null;
+      doSpeak();
+    };
+    // Fallback trigger if onvoiceschanged doesn't fire immediately
+    setTimeout(doSpeak, 150);
   }
-
-  let hasEnded = false;
-  const finish = () => {
-    if (!hasEnded) {
-      hasEnded = true;
-      if (onEnd) onEnd();
-    }
-  };
-
-  utterance.onstart = () => {
-    if (onStart) onStart();
-  };
-
-  utterance.onend = finish;
-  utterance.onerror = finish;
-
-  window.speechSynthesis.speak(utterance);
-
-  // Safety Timeout: Auto-finish after text duration so UI NEVER freezes
-  const durationMs = Math.min(9000, Math.max(3500, text.length * 75));
-  setTimeout(finish, durationMs);
 }
 
 export function stopSpeech() {
