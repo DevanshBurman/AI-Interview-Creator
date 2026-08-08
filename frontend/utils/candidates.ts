@@ -94,3 +94,39 @@ export const SAMPLE_CANDIDATES: CandidateProfile[] = [
     signals: { commitDays: 18, missionsCompleted: 28, missionsFirstTry: 6 }
   }
 ];
+
+export function getStrongestTopic(candidate: CandidateProfile): string {
+  const passed = candidate.missions.filter((m) => m.passed && !m.skipped);
+  if (passed.length === 0) return 'Cohort Fundamentals';
+
+  const minAttempts = Math.min(...passed.map((m) => m.attempts || 1));
+  const topMissions = passed.filter((m) => (m.attempts || 1) === minAttempts);
+
+  // Match role specialization for best representation
+  if (candidate.member.jobRole?.includes('Data')) {
+    const target = topMissions.find((m) => m.day === 31 || m.day === 8);
+    if (target) return target.title;
+  } else if (candidate.member.jobRole?.includes('Backend')) {
+    const target = topMissions.find((m) => m.day === 28 || m.day === 16);
+    if (target) return target.title;
+  } else if (candidate.member.jobRole?.includes('AI Engineer')) {
+    const target = topMissions.find((m) => m.day === 23 || m.day === 22);
+    if (target) return target.title;
+  } else if (candidate.member.jobRole?.includes('Analyst')) {
+    const target = topMissions.find((m) => m.day === 16 || m.day === 31);
+    if (target) return target.title;
+  }
+
+  return topMissions[topMissions.length - 1].title;
+}
+
+export function getHighlightMissions(candidate: CandidateProfile) {
+  const passed = candidate.missions.filter((m) => m.passed && !m.skipped);
+  const sorted = [...passed].sort((a, b) => {
+    const attA = a.attempts || 1;
+    const attB = b.attempts || 1;
+    if (attA !== attB) return attA - attB;
+    return b.day - a.day;
+  });
+  return sorted.slice(0, 3);
+}

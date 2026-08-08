@@ -2,7 +2,7 @@ import logging
 from typing import Optional, Dict, Any
 
 from backend.schemas.candidate import CandidateProfile
-from backend.schemas.interview import InterviewResponse, FeedbackSchema
+from backend.schemas.interview import InterviewResponse, FeedbackSchema, InterviewProgress
 from backend.models.session import InterviewSession
 from backend.modules.session_manager import session_manager
 from backend.modules.planner import planner
@@ -27,6 +27,18 @@ class InterviewOrchestrator:
         6. Decide when to ask follow-up questions vs advance to next curriculum topic.
         7. Determine interview completion and produce structured FeedbackSchema.
     """
+
+    def _build_progress(self, session: InterviewSession, slot: Any, q_type: str = "planned") -> InterviewProgress:
+        return InterviewProgress(
+            questionsAsked=len(session.turn_history),
+            totalPlanned=session.roadmap.total_planned_questions if session.roadmap else 8,
+            daysAssessed=len(session.covered_days),
+            totalDaysTargeted=len(session.roadmap.covered_days) if session.roadmap else 4,
+            coveredDays=list(session.covered_days),
+            currentQuestionType=q_type,
+            currentDay=slot.day,
+            currentDayTitle=slot.day_title,
+        )
 
     def start_interview(self, session_id: str, candidate: CandidateProfile) -> InterviewResponse:
         """
@@ -62,7 +74,8 @@ class InterviewOrchestrator:
 
         return InterviewResponse(
             reply=question_text,
-            done=False
+            done=False,
+            progress=self._build_progress(session, slot1, "planned")
         )
 
     def process_turn(self, session_id: str, message: str) -> InterviewResponse:
@@ -122,7 +135,8 @@ class InterviewOrchestrator:
             logger.info(f"Session '{session_id}' - Follow-up requested for slot {current_slot_idx} (Day {current_slot.day}).")
             return InterviewResponse(
                 reply=followup_text,
-                done=False
+                done=False,
+                progress=self._build_progress(session, current_slot, "follow-up")
             )
 
         # 6. Advance to next topic
@@ -165,7 +179,8 @@ class InterviewOrchestrator:
 
         return InterviewResponse(
             reply=next_q_text,
-            done=False
+            done=False,
+            progress=self._build_progress(session, next_slot, "planned")
         )
 
 # Global orchestrator instance

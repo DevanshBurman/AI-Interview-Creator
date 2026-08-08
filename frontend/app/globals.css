@@ -4,44 +4,127 @@
 
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Light Theme Tokens */
+    --bg-app: #F6F8FC;
+    --bg-surface: #FFFFFF;
+    --bg-surface-subtle: #F1F5F9;
+    --bg-card: #FFFFFF;
+    --border-card: rgba(226, 232, 240, 0.8);
+    
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
 
-    --card: 222.2 84% 6.9%;
-    --card-foreground: 210 40% 98%;
+    --color-indigo: #4F46E5;
+    --color-violet: #6366F1;
+    --color-emerald: #10B981;
+    --color-amber: #F59E0B;
+    --color-rose: #EF4444;
 
-    --popover: 222.2 84% 6.9%;
-    --popover-foreground: 210 40% 98%;
+    --shadow-soft: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+    --shadow-3d: 0 20px 40px -15px rgba(79, 70, 229, 0.2);
+  }
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+  .dark {
+    /* Dark Theme Tokens */
+    --bg-app: #0B0F19;
+    --bg-surface: #111827;
+    --bg-surface-subtle: #1E293B;
+    --bg-card: #131C2E;
+    --border-card: rgba(255, 255, 255, 0.1);
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --color-indigo: #6366F1;
+    --color-violet: #818CF8;
+    --color-emerald: #34D399;
+    --color-amber: #FBBF24;
+    --color-rose: #F87171;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
-
-    --radius: 0.5rem;
+    --shadow-soft: 0 4px 25px -2px rgba(0, 0, 0, 0.5);
+    --shadow-3d: 0 20px 50px -10px rgba(99, 102, 241, 0.35);
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--border-card);
   }
-  body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+  
+  html, body {
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
+}
+
+@layer utilities {
+  /* 3D Perspective Container */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .card-3d-hover {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .card-3d-hover:hover {
+    transform: translateY(-6px) rotateX(2deg) rotateY(-1deg) scale(1.01);
+    box-shadow: 0 20px 40px -12px rgba(99, 102, 241, 0.25);
+  }
+
+  /* Glassmorphism Surface */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
+
+  .dark .glass-panel {
+    background: rgba(19, 28, 46, 0.82);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  /* Glowing Neon Border */
+  .glow-border-indigo {
+    box-shadow: 0 0 20px -3px rgba(79, 70, 229, 0.4);
+    border-color: rgba(99, 102, 241, 0.6);
+  }
+
+  .dark .glow-border-indigo {
+    box-shadow: 0 0 25px -2px rgba(99, 102, 241, 0.6);
+    border-color: rgba(129, 140, 248, 0.7);
+  }
+
+  /* Audio Waveform Bars */
+  @keyframes soundwave {
+    0%, 100% { height: 6px; }
+    50% { height: 28px; }
+  }
+
+  .animate-soundwave-1 { animation: soundwave 1s ease-in-out infinite; }
+  .animate-soundwave-2 { animation: soundwave 0.8s ease-in-out 0.2s infinite; }
+  .animate-soundwave-3 { animation: soundwave 1.2s ease-in-out 0.4s infinite; }
+  .animate-soundwave-4 { animation: soundwave 0.9s ease-in-out 0.1s infinite; }
+}
+
+/* Float Animations */
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
 }

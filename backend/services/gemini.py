@@ -24,7 +24,7 @@ class GeminiService:
     - Encapsulates all interactions with the Google Gemini API.
     - Reads GEMINI_API_KEY from environment variables.
     - Formats templates from the prompts directory.
-    - Implements reusable AI reasoning methods with dynamic randomized variations:
+    - Implements objective-driven dynamic question generation:
         1. generate_question(...)
         2. generate_followup(...)
         3. evaluate_response(...)
@@ -71,7 +71,7 @@ class GeminiService:
         objectives: List[str],
         conversation_context: str = "None yet."
     ) -> str:
-        """Generate next curriculum question with dynamic variations."""
+        """Generate next curriculum question dynamically tailored to specific learning objectives."""
         objectives_str = "\n".join(f"- {obj}" for obj in objectives) if objectives else "- General understanding"
         prompt = QUESTION_GENERATION_PROMPT.format(
             candidate_name=candidate_name,
@@ -92,16 +92,19 @@ class GeminiService:
         except Exception as e:
             logger.error(f"Gemini generate_question API call failed: {e}")
 
-        # Dynamic randomized fallback questions to ensure variety
-        fallbacks = [
-            f"Can you walk me through your engineering implementation for Day {day_num}: {day_title}?",
-            f"Regarding Day {day_num}: {day_title}, what were the key technical challenges you faced and how did you resolve them?",
-            f"How did you design and structure your solution for Day {day_num}: {day_title} in your cohort project?",
-            f"Can you explain the core architecture behind Day {day_num}: {day_title} and why you chose that specific approach?",
-            f"In Day {day_num}: {day_title}, what performance trade-offs did you evaluate during development?",
-            f"Could you break down the step-by-step technical pipeline you built for Day {day_num}: {day_title}?"
+        # Pick a random specific objective if available
+        selected_obj = random.choice(objectives) if objectives else f"core principles of {day_title}"
+
+        # Dynamic objective-tailored fallback questions
+        objective_templates = [
+            f"Regarding Day {day_num} ({day_title}), how did you approach '{selected_obj}' in your technical implementation?",
+            f"Can you walk me through your engineering strategy for '{selected_obj}' when working on Day {day_num}: {day_title}?",
+            f"In your cohort project for Day {day_num} ({day_title}), how did you tackle '{selected_obj}'?",
+            f"Could you explain the architectural trade-offs you considered when building '{selected_obj}' during Day {day_num}: {day_title}?",
+            f"What specific techniques or libraries did you use to accomplish '{selected_obj}' for Day {day_num}: {day_title}?",
+            f"How did you validate and test '{selected_obj}' in your Day {day_num} ({day_title}) implementation?"
         ]
-        return random.choice(fallbacks)
+        return random.choice(objective_templates)
 
     def generate_followup_question(
         self,
@@ -112,7 +115,7 @@ class GeminiService:
         candidate_answer: str,
         objectives: List[str]
     ) -> str:
-        """Generate follow-up probing question with dynamic variations."""
+        """Generate follow-up probing question dynamically tailored to specific learning objectives."""
         objectives_str = "\n".join(f"- {obj}" for obj in objectives) if objectives else "- Depth of reasoning"
         prompt = FOLLOWUP_QUESTION_PROMPT.format(
             candidate_name=candidate_name,
@@ -131,15 +134,17 @@ class GeminiService:
         except Exception as e:
             logger.error(f"Gemini generate_followup_question failed: {e}")
 
-        # Dynamic randomized follow-up variations
-        followup_fallbacks = [
-            f"Could you elaborate further on the architectural decisions you made for {day_title}?",
-            f"What edge cases or potential bottlenecks did you consider when implementing {day_title}?",
-            f"If you were scaling your solution for {day_title} to production traffic, what would you optimize next?",
-            f"Can you go deeper into the underlying data flow and error handling for {day_title}?",
-            f"How did you test and validate the correctness of your {day_title} implementation?"
+        selected_obj = random.choice(objectives) if objectives else day_title
+
+        # Dynamic objective-tailored follow-up variations
+        followup_templates = [
+            f"Could you elaborate further on how you handled '{selected_obj}' in {day_title}?",
+            f"What potential edge cases or failure modes did you consider regarding '{selected_obj}'?",
+            f"If you were scaling your implementation of '{selected_obj}' to high-throughput production workloads, what changes would you make?",
+            f"Can you detail the underlying data flow and state management involved in '{selected_obj}'?",
+            f"How did you measure and benchmark performance for '{selected_obj}' in {day_title}?"
         ]
-        return random.choice(followup_fallbacks)
+        return random.choice(followup_templates)
 
     def evaluate_response(
         self,
