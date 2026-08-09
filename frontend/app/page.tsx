@@ -66,6 +66,9 @@ export default function Home() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const shouldRecordRef = useRef<boolean>(false);
+  const baseTextRef = useRef<string>('');
+
 
   // Initialize Dark Mode state from localStorage
   useEffect(() => {
@@ -117,7 +120,10 @@ export default function Home() {
     stopSpeech();
     setErrorMsg(null);
     setIsSubmitting(true);
+    baseTextRef.current = '';
+    setInputAnswer('');
     const newSessionId = 'session-' + Date.now();
+
     setSessionId(newSessionId);
     setMessages([]);
     setTurnCount(0);
@@ -166,6 +172,15 @@ export default function Home() {
     setErrorMsg(null);
     const userText = inputAnswer.trim();
     setInputAnswer('');
+    baseTextRef.current = '';
+    shouldRecordRef.current = false;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+    setIsRecording(false);
+
 
     const userMessage: ChatMessage = {
       id: 'msg-user-' + Date.now(),
@@ -226,11 +241,19 @@ export default function Home() {
     }
 
     if (isRecording) {
+      shouldRecordRef.current = false;
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // ignore
+        }
       }
       setIsRecording(false);
     } else {
+      shouldRecordRef.current = true;
+      baseTextRef.current = inputAnswer;
+
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -241,23 +264,41 @@ export default function Home() {
       };
 
       recognition.onresult = (event: any) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+        let currentSessionText = '';
+        for (let i = 0; i < event.results.length; i++) {
+          currentSessionText += event.results[i][0].transcript;
         }
-        setInputAnswer((prev) => (prev ? prev + ' ' + transcript : transcript));
+        const base = baseTextRef.current.trim();
+        const text = currentSessionText.trim();
+        setInputAnswer(base ? base + ' ' + text : text);
       };
 
-      recognition.onerror = () => {
+      recognition.onerror = (event: any) => {
+        if (event.error === 'no-speech' || event.error === 'aborted') {
+          return;
+        }
+        shouldRecordRef.current = false;
         setIsRecording(false);
       };
 
       recognition.onend = () => {
-        setIsRecording(false);
+        if (shouldRecordRef.current) {
+          try {
+            recognition.start();
+          } catch (e) {
+            setIsRecording(false);
+          }
+        } else {
+          setIsRecording(false);
+        }
       };
 
       recognitionRef.current = recognition;
-      recognition.start();
+      try {
+        recognition.start();
+      } catch (e) {
+        setIsRecording(false);
+      }
     }
   };
 
@@ -270,51 +311,59 @@ export default function Home() {
   const realTopicBreakdowns: TopicBreakdown[] = (feedback?.topicBreakdowns && feedback.topicBreakdowns.length > 0)
     ? feedback.topicBreakdowns
     : [
-        {
-          day: coveredDays[0] || 7,
-          title: getDayTitle(coveredDays[0] || 7),
-          score: avgWordCount < 5 ? 20 : avgWordCount < 15 ? 55 : 85,
-          evidence: candidateUserMessages[0]
-            ? `Candidate answered: "${candidateUserMessages[0].text.slice(0, 60)}${candidateUserMessages[0].text.length > 60 ? '...' : ''}" (${candidateUserMessages[0].text.split(' ').length} words).`
-            : 'No response recorded.',
-        },
-        {
-          day: coveredDays[1] || 8,
-          title: getDayTitle(coveredDays[1] || 8),
-          score: avgWordCount < 5 ? 25 : avgWordCount < 15 ? 60 : 75,
-          evidence: candidateUserMessages[1]
-            ? `Candidate answered: "${candidateUserMessages[1].text.slice(0, 60)}${candidateUserMessages[1].text.length > 60 ? '...' : ''}" (${candidateUserMessages[1].text.split(' ').length} words).`
-            : 'Brief or empty response.',
-        },
-        {
-          day: coveredDays[2] || 10,
-          title: getDayTitle(coveredDays[2] || 10),
-          score: avgWordCount < 5 ? 20 : avgWordCount < 15 ? 50 : 80,
-          evidence: candidateUserMessages[2]
-            ? `Candidate answered: "${candidateUserMessages[2].text.slice(0, 60)}${candidateUserMessages[2].text.length > 60 ? '...' : ''}" (${candidateUserMessages[2].text.split(' ').length} words).`
-            : 'Requires technical elaboration.',
-        },
-        {
-          day: coveredDays[3] || 23,
-          title: getDayTitle(coveredDays[3] || 23),
-          score: avgWordCount < 5 ? 15 : avgWordCount < 15 ? 45 : 70,
-          evidence: candidateUserMessages[3]
-            ? `Candidate answered: "${candidateUserMessages[3].text.slice(0, 60)}${candidateUserMessages[3].text.length > 60 ? '...' : ''}" (${candidateUserMessages[3].text.split(' ').length} words).`
-            : 'Topic requires deep review.',
-        },
-      ];
+      {
+        day: coveredDays[0] || 7,
+        title: getDayTitle(coveredDays[0] || 7),
+        score: avgWordCount < 5 ? 20 : avgWordCount < 15 ? 55 : 85,
+        evidence: candidateUserMessages[0]
+          ? `Candidate answered: "${candidateUserMessages[0].text.slice(0, 60)}${candidateUserMessages[0].text.length > 60 ? '...' : ''}" (${candidateUserMessages[0].text.split(' ').length} words).`
+          : 'No response recorded.',
+      },
+      {
+        day: coveredDays[1] || 8,
+        title: getDayTitle(coveredDays[1] || 8),
+        score: avgWordCount < 5 ? 25 : avgWordCount < 15 ? 60 : 75,
+        evidence: candidateUserMessages[1]
+          ? `Candidate answered: "${candidateUserMessages[1].text.slice(0, 60)}${candidateUserMessages[1].text.length > 60 ? '...' : ''}" (${candidateUserMessages[1].text.split(' ').length} words).`
+          : 'Brief or empty response.',
+      },
+      {
+        day: coveredDays[2] || 10,
+        title: getDayTitle(coveredDays[2] || 10),
+        score: avgWordCount < 5 ? 20 : avgWordCount < 15 ? 50 : 80,
+        evidence: candidateUserMessages[2]
+          ? `Candidate answered: "${candidateUserMessages[2].text.slice(0, 60)}${candidateUserMessages[2].text.length > 60 ? '...' : ''}" (${candidateUserMessages[2].text.split(' ').length} words).`
+          : 'Requires technical elaboration.',
+      },
+      {
+        day: coveredDays[3] || 23,
+        title: getDayTitle(coveredDays[3] || 23),
+        score: avgWordCount < 5 ? 15 : avgWordCount < 15 ? 45 : 70,
+        evidence: candidateUserMessages[3]
+          ? `Candidate answered: "${candidateUserMessages[3].text.slice(0, 60)}${candidateUserMessages[3].text.length > 60 ? '...' : ''}" (${candidateUserMessages[3].text.split(' ').length} words).`
+          : 'Topic requires deep review.',
+      },
+    ];
 
   // Calculate readiness score dynamically if missing from backend feedback
   const computedReadinessScore = feedback?.readinessScore !== undefined
     ? feedback.readinessScore
     : Math.round(
-        realTopicBreakdowns.reduce((acc, t) => acc + t.score, 0) / Math.max(1, realTopicBreakdowns.length)
-      );
+      realTopicBreakdowns.reduce((acc, t) => acc + t.score, 0) / Math.max(1, realTopicBreakdowns.length)
+    );
 
   const candidateWeakestMsg = candidateUserMessages.find((m) => m.text.split(' ').length < 10) || candidateUserMessages[0];
 
   return (
-    <main className="min-h-screen bg-pearl dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans relative selection:bg-indigo-500 selection:text-white transition-colors duration-300">
+    <main className="min-h-screen bg-[#F9F9FB] dark:bg-[#0F0A1C] text-[#1A1A2E] dark:text-[#F9F9FB] flex flex-col font-sans relative selection:bg-[#560BAD] selection:text-white transition-colors duration-300 overflow-x-hidden">
+      {/* Cohort Aurora Ambient Background Layer */}
+
+      <div className="aurora-container" aria-hidden="true">
+        <div className="aurora-blob-1" />
+        <div className="aurora-blob-2" />
+        <div className="aurora-blob-3" />
+      </div>
+
       {/* Header */}
       <Header
         onChangeCandidate={() => setStep('select')}
@@ -335,11 +384,10 @@ export default function Home() {
                   setIsMuted(nextMute);
                   if (nextMute) stopSpeech();
                 }}
-                className={`px-3 py-1 rounded-full border text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  isMuted
+                className={`px-3 py-1 rounded-full border text-xs font-semibold transition-all flex items-center gap-1.5 ${isMuted
                     ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300'
                     : 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300'
-                }`}
+                  }`}
               >
                 {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 animate-pulse" />}
                 <span>{isMuted ? 'Voice Muted' : 'Voice Live'}</span>
@@ -407,7 +455,7 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">Select Cohort Profile</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Load candidate mission history & passed curriculum days.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-200 mt-1">Load candidate mission history & passed curriculum days.</p>
               </div>
             </div>
 
@@ -417,7 +465,7 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">Adaptive AI Probing</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">AI Interviewer evaluates depth & asks tailored follow-up questions.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-200 mt-1">AI Interviewer evaluates depth & asks tailored follow-up questions.</p>
               </div>
             </div>
 
@@ -427,7 +475,7 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">Actionable Feedback Report</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Receive readiness score, knowledge map, and targeted revision steps.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-200 mt-1">Receive readiness score, knowledge map, and targeted revision steps.</p>
               </div>
             </div>
           </div>
@@ -438,7 +486,7 @@ export default function Home() {
               <User className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               Select Candidate Profile
             </h2>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+            <span className="text-xs text-slate-500 dark:text-slate-200 font-mono">
               {SAMPLE_CANDIDATES.length} Cohort Candidates Available
             </span>
           </div>
@@ -457,11 +505,10 @@ export default function Home() {
                     key={cand.member.id}
                     variant={isSelected ? 'elevated' : 'interactive'}
                     onClick={() => setSelectedCandidate(cand)}
-                    className={`relative p-6 transition-all duration-300 ${
-                      isSelected
+                    className={`relative p-6 transition-all duration-300 ${isSelected
                         ? 'border-indigo-600 dark:border-indigo-500 ring-2 ring-indigo-600/30 dark:ring-indigo-500/40 bg-white dark:bg-slate-900 shadow-2xl glow-border-indigo'
                         : 'hover:border-indigo-300 dark:hover:border-slate-700'
-                    }`}
+                      }`}
                   >
                     {/* Header Info */}
                     <div className="flex items-start justify-between mb-4">
@@ -485,26 +532,26 @@ export default function Home() {
                     {/* Candidate Metrics Box */}
                     <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-4">
                       <div>
-                        <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Experience</span>
+                        <span className="text-slate-500 dark:text-slate-200 block text-[11px]">Experience</span>
                         <span className="font-extrabold text-slate-900 dark:text-slate-100">{cand.member.yearsExperience} Years</span>
                       </div>
                       <div>
-                        <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Education</span>
+                        <span className="text-slate-500 dark:text-slate-200 block text-[11px]">Education</span>
                         <span className="font-extrabold text-slate-900 dark:text-slate-100 truncate block">{cand.member.education}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Cohort Missions</span>
+                        <span className="text-slate-500 dark:text-slate-200 block text-[11px]">Cohort Missions</span>
                         <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{passedCount} Completed</span>
                       </div>
                       <div>
-                        <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Skipped Topics</span>
+                        <span className="text-slate-500 dark:text-slate-200 block text-[11px]">Skipped Topics</span>
                         <span className="font-extrabold text-amber-600 dark:text-amber-400">{skippedCount} Excluded</span>
                       </div>
                     </div>
 
                     {/* Topic Chips preview */}
                     <div className="space-y-2 mb-4">
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-200">
                         <span>Strongest Topic:</span>
                         <span className="font-bold text-indigo-600 dark:text-indigo-400">{getStrongestTopic(cand)}</span>
                       </div>
@@ -513,7 +560,7 @@ export default function Home() {
                           <TopicChip key={m.day} day={m.day} title={m.title} status="passed" />
                         ))}
                         {cand.missions.length > 3 && (
-                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-200 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
                             +{cand.missions.length - 3} more
                           </span>
                         )}
@@ -522,7 +569,7 @@ export default function Home() {
 
                     {/* Bottom CTA */}
                     <div className="flex items-center justify-between pt-3 border-t border-slate-200/80 dark:border-slate-800 text-xs">
-                      <span className="text-slate-500 dark:text-slate-400 font-mono">
+                      <span className="text-slate-500 dark:text-slate-200 font-mono">
                         {cand.signals?.commitDays || 20}+ Commit Days
                       </span>
                       {isSelected ? (
@@ -600,7 +647,7 @@ export default function Home() {
             <Card className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Candidate</span>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-wider">Candidate</span>
                   <h3 className="font-extrabold text-slate-900 dark:text-white text-base">{selectedCandidate.member.name}</h3>
                 </div>
                 <Badge variant="indigo" size="sm">
@@ -611,7 +658,7 @@ export default function Home() {
               {/* Live Interview Progress */}
               <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-600 dark:text-slate-400">Interview Progress</span>
+                  <span className="text-slate-600 dark:text-slate-200">Interview Progress</span>
                   <span className="text-slate-900 dark:text-slate-100 font-mono font-bold">
                     Q{Math.min(turnCount, 8)} of 8
                   </span>
@@ -621,7 +668,7 @@ export default function Home() {
 
               {/* Assessed Topics */}
               <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-800">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-200 uppercase tracking-wider block">
                   Curriculum Coverage ({coveredDays.length} Days)
                 </span>
                 <div className="flex flex-wrap gap-1.5">
@@ -654,11 +701,10 @@ export default function Home() {
                     )}
 
                     <div
-                      className={`max-w-[85%] sm:max-w-[80%] p-5 rounded-2xl text-sm leading-relaxed ${
-                        isAI
+                      className={`max-w-[85%] sm:max-w-[80%] p-5 rounded-2xl text-sm leading-relaxed ${isAI
                           ? 'bg-slate-900 text-slate-100 rounded-tl-none shadow-md border border-slate-800'
                           : 'bg-indigo-600 text-white rounded-tr-none shadow-md'
-                      }`}
+                        }`}
                     >
                       {/* Turn Metadata Bar */}
                       <div className="flex items-center justify-between text-[11px] mb-2 border-b border-white/10 pb-2 opacity-80">
@@ -719,18 +765,17 @@ export default function Home() {
                     }
                   }}
                   placeholder="Type your technical explanation here... (Press Ctrl+Enter to submit)"
-                  className="w-full p-4 pr-28 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 resize-none transition-all"
+                  className="w-full p-4 pr-28 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-gray-300 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 resize-none transition-all"
                 />
                 <div className="absolute right-3 bottom-3 flex items-center space-x-2">
                   <button
                     type="button"
                     onClick={toggleRecording}
                     title={isRecording ? 'Stop Recording' : 'Start Voice Input'}
-                    className={`p-2.5 rounded-xl transition-all ${
-                      isRecording
+                    className={`p-2.5 rounded-xl transition-all ${isRecording
                         ? 'bg-rose-600 text-white animate-pulse shadow-md'
                         : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700'
-                    }`}
+                      }`}
                   >
                     {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </button>
@@ -828,7 +873,7 @@ export default function Home() {
                       </span>
                     </div>
                     <ProgressBar value={tb.score} color={tb.score >= 70 ? 'emerald' : tb.score >= 45 ? 'amber' : 'slate'} />
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed pt-1">
+                    <p className="text-xs text-slate-600 dark:text-slate-200 leading-relaxed pt-1">
                       {tb.evidence}
                     </p>
                   </Card>
@@ -906,7 +951,7 @@ export default function Home() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                  <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block text-[10px]">
+                  <span className="font-bold text-slate-500 dark:text-slate-200 uppercase tracking-wider block text-[10px]">
                     Your Explanation ({feedback.answerComparison ? 'Selected Turn' : 'Weakest Response'})
                   </span>
                   <p className="text-slate-700 dark:text-slate-300 leading-relaxed italic">
