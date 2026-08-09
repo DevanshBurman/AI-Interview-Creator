@@ -128,6 +128,7 @@ export default function Home() {
     setMessages([]);
     setTurnCount(0);
     setFeedback(null);
+    setStep('interview');
 
     try {
       const res: InterviewResponse = await postInterview({
@@ -154,9 +155,13 @@ export default function Home() {
 
       setMessages([initialMessage]);
       setTurnCount(1);
-      setStep('interview');
       handleSpeak(res.reply);
     } catch (err: any) {
+      setStep('select');
+      setSessionId('');
+      setMessages([]);
+      setTurnCount(0);
+      setFeedback(null);
       setErrorMsg(err.message || 'Failed to start interview session. Ensure backend is running.');
     } finally {
       setIsSubmitting(false);
