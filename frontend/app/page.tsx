@@ -373,7 +373,7 @@ export default function Home() {
       />
 
       {/* Sub-header Controls Bar */}
-      <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur border-b border-slate-200/60 dark:border-slate-800 px-4 py-2">
+      <div className="relative z-10 bg-white/60 dark:bg-slate-900/60 backdrop-blur border-b border-slate-200/60 dark:border-slate-800 px-4 py-2">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3 text-xs">
             <StatusIndicator type="connected" label="API Server Online" />
@@ -422,7 +422,7 @@ export default function Home() {
       {/* SCREEN 1: LOBBY / CANDIDATE SELECTION LAUNCHPAD                          */}
       {/* ========================================================================= */}
       {step === 'select' && (
-        <section className="max-w-6xl mx-auto px-4 py-10 flex-1 flex flex-col justify-center w-full">
+        <section className="max-w-6xl mx-auto px-4 py-10 flex-1 flex flex-col justify-center w-full relative z-10">
           {/* Editorial Hero Section */}
           <div className="text-center space-y-4 mb-12 relative">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider shadow-sm">
@@ -434,13 +434,13 @@ export default function Home() {
               Turn your learning journey into <span className="text-indigo-600 dark:text-indigo-400">interview confidence.</span>
             </h1>
 
-            <p className="text-slate-600 dark:text-slate-300 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
+            <p className="text-slate-600 dark:text-white/80 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
               Practice adaptive technical interviews built from the exact projects and concepts you have actually completed in your AI cohort.
             </p>
 
             {/* Trust Statement */}
             <div className="pt-2">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-100 text-xs font-semibold">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 Questions are selected only from completed cohort topics. Skipped topics are excluded.
               </span>
@@ -449,8 +449,8 @@ export default function Home() {
 
           {/* 3-Step Process Strip */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-start space-x-4">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-extrabold flex items-center justify-center text-base flex-shrink-0">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700 shadow-sm backdrop-blur-sm flex items-start space-x-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-300 font-extrabold flex items-center justify-center text-base flex-shrink-0">
                 01
               </div>
               <div>
@@ -459,8 +459,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-start space-x-4">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-extrabold flex items-center justify-center text-base flex-shrink-0">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700 shadow-sm backdrop-blur-sm flex items-start space-x-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-300 font-extrabold flex items-center justify-center text-base flex-shrink-0">
                 02
               </div>
               <div>
@@ -469,8 +469,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-start space-x-4">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-extrabold flex items-center justify-center text-base flex-shrink-0">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700 shadow-sm backdrop-blur-sm flex items-start space-x-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-300 font-extrabold flex items-center justify-center text-base flex-shrink-0">
                 03
               </div>
               <div>
@@ -608,7 +608,7 @@ export default function Home() {
       {/* SCREEN 2: LIVE INTERVIEW WORKSPACE                                        */}
       {/* ========================================================================= */}
       {step === 'interview' && (
-        <section className="max-w-7xl mx-auto px-4 py-4 flex-1 flex flex-col lg:flex-row gap-6 w-full h-[calc(100vh-120px)]">
+        <section className="max-w-7xl mx-auto px-4 py-4 flex-1 flex flex-col lg:flex-row gap-6 w-full h-[calc(100vh-120px)] relative z-10">
           {/* Left Rail: Interview Intelligence */}
           <div className="w-full lg:w-96 flex flex-col gap-4 overflow-y-auto pr-1">
             {/* 3D Presenter Studio Container */}
@@ -799,7 +799,7 @@ export default function Home() {
       {/* SCREEN 3: FINAL REPORT / PERFORMANCE DASHBOARD                            */}
       {/* ========================================================================= */}
       {step === 'results' && feedback && (
-        <section className="max-w-5xl mx-auto px-4 py-10 flex-1 flex flex-col justify-center w-full">
+        <section className="max-w-5xl mx-auto px-4 py-10 flex-1 flex flex-col justify-center w-full relative z-10">
           {/* Dark Immersive Report Hero Banner */}
           <div className="relative rounded-3xl bg-slate-950 border border-slate-800 p-8 sm:p-10 mb-8 overflow-hidden shadow-2xl text-white glow-border-indigo">
             <div className="absolute inset-0 report-hero-glow pointer-events-none" />
