@@ -530,7 +530,7 @@ export default function Home() {
                     </div>
 
                     {/* Candidate Metrics Box */}
-                    <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 mb-4">
+                    <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50/80 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700 mb-4">
                       <div>
                         <span className="text-slate-500 dark:text-slate-200 block text-[11px]">Experience</span>
                         <span className="font-extrabold text-slate-900 dark:text-slate-100">{cand.member.yearsExperience} Years</span>
@@ -577,7 +577,7 @@ export default function Home() {
                           Ready to Launch <ArrowRight className="w-4 h-4" />
                         </span>
                       ) : (
-                        <span className="text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 font-semibold">
+                        <span className="text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold">
                           Click to select
                         </span>
                       )}
@@ -702,7 +702,7 @@ export default function Home() {
 
                     <div
                       className={`max-w-[85%] sm:max-w-[80%] p-5 rounded-2xl text-sm leading-relaxed ${isAI
-                          ? 'bg-slate-900 text-slate-100 rounded-tl-none shadow-md border border-slate-800'
+                          ? 'bg-slate-900 dark:bg-slate-800 text-slate-100 rounded-tl-none shadow-md border border-slate-800 dark:border-slate-700'
                           : 'bg-indigo-600 text-white rounded-tr-none shadow-md'
                         }`}
                     >
@@ -928,7 +928,7 @@ export default function Home() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {feedback.next.map((nxt, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-2">
+                  <div key={idx} className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between space-y-2">
                     <div className="flex items-center space-x-2">
                       <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-extrabold text-xs flex items-center justify-center flex-shrink-0">
                         {idx + 1}
@@ -937,7 +937,7 @@ export default function Home() {
                         {idx === 0 ? 'Review Concept' : idx === 1 ? 'Rebuild/Practice' : 'Reattempt Probing'}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{nxt}</p>
+                    <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">{nxt}</p>
                   </div>
                 ))}
               </div>
@@ -950,16 +950,16 @@ export default function Home() {
                 Improve This Answer (Compare View)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2">
                   <span className="font-bold text-slate-500 dark:text-slate-200 uppercase tracking-wider block text-[10px]">
                     Your Explanation ({feedback.answerComparison ? 'Selected Turn' : 'Weakest Response'})
                   </span>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                  <p className="text-slate-700 dark:text-slate-200 leading-relaxed italic">
                     "{feedback.answerComparison?.candidateAnswer || candidateWeakestMsg?.text || 'idk'}"
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
+                <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-700 space-y-2">
                   <span className="font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block text-[10px]">
                     Stronger Technical Answer
                   </span>
@@ -982,7 +982,7 @@ export default function Home() {
                 </div>
               }
             >
-              <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+              <div className="space-y-2 text-xs text-slate-700 dark:text-slate-200">
                 <p>
                   <strong>Personalized Curriculum Selection:</strong> Topics were selected directly from the candidate's verified completed cohort missions (Days {coveredDays.join(', ')}).
                 </p>
